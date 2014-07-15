@@ -47,6 +47,12 @@ mono_gc_max_generation (void)
 }
 
 int
+mono_gc_get_object_age  (MonoObject *object)
+{
+	return -1;
+}
+
+int
 mono_gc_get_generation  (MonoObject *object)
 {
 	return 0;

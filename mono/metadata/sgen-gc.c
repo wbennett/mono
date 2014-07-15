@@ -448,7 +448,7 @@ static FinalizeReadyEntry *critical_fin_list = NULL;
 static EphemeronLinkNode *ephemeron_list;
 
 /* registered roots: the key to the hash is the root start address */
-/* 
+/*
  * Different kinds of roots are kept separate to speed up pin_from_roots () for example.
  */
 SgenHashTable roots_hash [ROOT_TYPE_NUM] = {
@@ -493,7 +493,7 @@ __thread char *stack_end;
 #endif
 
 /* The size of a TLAB */
-/* The bigger the value, the less often we have to go to the slow path to allocate a new 
+/* The bigger the value, the less often we have to go to the slow path to allocate a new
  * one, but the more space is wasted by threads not allocating much memory.
  * FIXME: Tune this.
  * FIXME: Make this self-tuning for each thread.
@@ -1141,7 +1141,7 @@ sgen_sort_addresses (void **array, size_t size)
 	}
 }
 
-/* 
+/*
  * Scan the memory between start and end and queue values which could be pointers
  * to the area between start_nursery and end_nursery for later consideration.
  * Typically used for thread stacks.
@@ -1181,7 +1181,7 @@ conservatively_pin_objects_from (void **start, void **end, void *start_nursery, 
 				sgen_pin_stage_ptr ((void*)addr);
 				count++;
 			}
-			if (G_UNLIKELY (do_pin_stats)) { 
+			if (G_UNLIKELY (do_pin_stats)) {
 				if (ptr_in_nursery ((void*)addr))
 					sgen_pin_stats_register_address ((char*)addr, pin_type);
 			}
@@ -1569,7 +1569,7 @@ finish_gray_stack (int generation, GrayQueue *queue)
 	 * We need to walk the LO list as well in search of marked big objects
 	 * (use a flag since this is needed only on major collections). We need to loop
 	 * here as well, so keep a counter of marked LO (increasing it in copy_object).
-	 *   To achieve better cache locality and cache usage, we drain the gray stack 
+	 *   To achieve better cache locality and cache usage, we drain the gray stack
 	 * frequently, after each object is copied, and just finish the work here.
 	 */
 	sgen_drain_gray_stack (-1, ctx);
@@ -1666,7 +1666,7 @@ finish_gray_stack (int generation, GrayQueue *queue)
 	clear_unreachable_ephemerons (ctx);
 
 	/*
-	 * We clear togglerefs only after all possible chances of revival are done. 
+	 * We clear togglerefs only after all possible chances of revival are done.
 	 * This is semantically more inline with what users expect and it allows for
 	 * user finalizers to correctly interact with TR objects.
 	*/
@@ -2205,7 +2205,7 @@ collect_nursery (SgenGrayQueue *unpin_queue, gboolean finish_up_concurrent_mark)
 		current_object_ops = sgen_minor_collector.parallel_ops;
 	else
 		current_object_ops = sgen_minor_collector.serial_ops;
-	
+
 	reset_pinned_from_failed_allocation ();
 
 	check_scan_starts ();
@@ -3089,7 +3089,7 @@ sgen_ensure_free_space (size_t size)
 			generation_to_collect = GENERATION_OLD;
 		} else {
 			generation_to_collect = GENERATION_NURSERY;
-			reason = "Nursery full";                        
+			reason = "Nursery full";
 		}
 	}
 
@@ -3266,7 +3266,7 @@ sgen_major_is_object_alive (void *object)
 }
 
 /*
- * If the object has been forwarded it means it's still referenced from a root. 
+ * If the object has been forwarded it means it's still referenced from a root.
  * If it is pinned it's still alive as well.
  * A LOS object is only alive if we have pinned it.
  * Return TRUE if @obj is ready to be finalized.
@@ -3857,7 +3857,7 @@ sgen_thread_attach (SgenThreadInfo *info)
 	/*this is odd, can we get attached before the gc is inited?*/
 	init_stats ();
 	UNLOCK_GC;
-	
+
 	if (gc_callbacks.thread_attach_func && !info->runtime_data)
 		info->runtime_data = gc_callbacks.thread_attach_func ();
 }
@@ -3870,7 +3870,7 @@ mono_gc_register_thread (void *baseptr)
 /*
  * mono_gc_set_stack_end:
  *
- *   Set the end of the current threads stack to STACK_END. The stack space between 
+ *   Set the end of the current threads stack to STACK_END. The stack space between
  * STACK_END and the real end of the threads stack will not be scanned during collections.
  */
 void
@@ -3909,7 +3909,7 @@ mono_gc_pthread_detach (pthread_t thread)
 }
 
 void
-mono_gc_pthread_exit (void *retval) 
+mono_gc_pthread_exit (void *retval)
 {
 	mono_thread_info_detach ();
 	pthread_exit (retval);
@@ -4145,7 +4145,7 @@ mono_gc_wbarrier_value_copy (gpointer dest, gpointer src, int count, MonoClass *
 	if (ptr_in_nursery (dest) || ptr_on_stack (dest) || !SGEN_CLASS_HAS_REFERENCES (klass)) {
 		size_t element_size = mono_class_value_size (klass, NULL);
 		size_t size = count * element_size;
-		mono_gc_memmove_atomic (dest, src, size);		
+		mono_gc_memmove_atomic (dest, src, size);
 		return;
 	}
 
@@ -4180,7 +4180,7 @@ mono_gc_wbarrier_object_copy (MonoObject* obj, MonoObject *src)
 		size = mono_object_class (obj)->instance_size;
 		mono_gc_memmove_aligned ((char*)obj + sizeof (MonoObject), (char*)src + sizeof (MonoObject),
 				size - sizeof (MonoObject));
-		return;	
+		return;
 	}
 
 #ifdef SGEN_HEAVY_BINARY_PROTOCOL
@@ -4329,6 +4329,31 @@ gboolean
 mono_object_is_alive (MonoObject* o)
 {
 	return TRUE;
+}
+
+
+/**
+ * mono_gc_get_object_age:
+ * @object: a managed object
+ *
+ * Get the precise age of @object. This is the number of times
+ * the object survived collection
+ *
+ * Use this has a hint only.
+ *
+ * Returns: the age of @object, -1 implies not implemented internally
+ */
+int
+mono_gc_get_object_age  (MonoObject *object)
+{
+    if(object->vtable)
+    {
+        //the MonoVTable with the object will contain age
+        //this age incremented by the collector implementation
+        return object->vtable->age;
+    }
+
+	return 0;
 }
 
 int
@@ -4579,7 +4604,7 @@ mono_gc_base_init (void)
 #ifndef HAVE_KW_THREAD
 	mono_native_tls_alloc (&thread_info_key, NULL);
 #if defined(__APPLE__) || defined (HOST_WIN32)
-	/* 
+	/*
 	 * CEE_MONO_TLS requires the tls offset, not the key, so the code below only works on darwin,
 	 * where the two are the same.
 	 */
@@ -5097,7 +5122,7 @@ emit_nursery_check (MonoMethodBuilder *mb, int *nursery_check_return_labels)
 		mono_mb_emit_ptr (mb, (gpointer) sgen_get_nursery_end ());
 		nursery_check_return_labels [2] = mono_mb_emit_branch (mb, CEE_BGE);
 	}
-#endif	
+#endif
 }
 #endif
 

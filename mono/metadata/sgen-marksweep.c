@@ -1529,7 +1529,11 @@ sweep_block_for_size (MSBlockInfo *block, int count, int obj_size)
 
 		MS_CALC_MARK_BIT (word, bit, obj);
 		if (MS_MARK_BIT (block, word, bit)) {
+            MonoVTable *vtable;
 			SGEN_ASSERT (9, MS_OBJ_ALLOCED (obj, block), "object %p not allocated", obj);
+            //We have survived a sweep, increment the age of the object
+            vtable = (MonoVTable*)SGEN_LOAD_VTABLE(obj);
+            vtable->age++;
 		} else {
 			/* an unmarked object */
 			if (MS_OBJ_ALLOCED (obj, block)) {
