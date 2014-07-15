@@ -70,6 +70,9 @@ namespace System
 #endif
 
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		public extern static int GetObjectAge (object obj);
+
+		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		public extern static int GetGeneration (object obj);
 
 		public static int GetGeneration (WeakReference wo) {

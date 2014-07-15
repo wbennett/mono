@@ -45,6 +45,23 @@ mono_gc_get_generation  (MonoObject *object)
 	return 0;
 }
 
+/**
+ * mono_gc_get_object_age:
+ * @object: a managed object
+ *
+ * Get the precise age of the @object. This is the number of
+ * times the object survived collection
+ *
+ * Use this has a hint only.
+ *
+ * Returns: the age, -1 if not implemented
+ */
+int
+mono_gc_get_object_age  (MonoObject *object)
+{
+	return -1;
+}
+
 int
 mono_gc_collection_count (int generation)
 {

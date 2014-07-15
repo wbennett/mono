@@ -52,7 +52,7 @@ static __forceinline void
 #else
 static inline void __attribute__((always_inline))
 #endif
-SERIAL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue) 
+SERIAL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 {
 	char *forwarded;
 	char *obj = *obj_slot;
@@ -92,7 +92,7 @@ SERIAL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 	if (sgen_nursery_is_to_space (obj)) {
 		SGEN_ASSERT (9, ((MonoVTable*)SGEN_LOAD_VTABLE(obj))->gc_descr, "to space object %p has no gc descriptor", obj);
 		SGEN_LOG (9, " (tospace, no change)");
-		HEAVY_STAT (++stat_nursery_copy_object_failed_to_space);		
+		HEAVY_STAT (++stat_nursery_copy_object_failed_to_space);
 		return;
 	}
 #endif
@@ -112,7 +112,7 @@ static __forceinline void
 #else
 static inline void __attribute__((always_inline))
 #endif
-SERIAL_COPY_OBJECT_FROM_OBJ (void **obj_slot, SgenGrayQueue *queue) 
+SERIAL_COPY_OBJECT_FROM_OBJ (void **obj_slot, SgenGrayQueue *queue)
 {
 	char *forwarded;
 	char *obj = *obj_slot;
@@ -128,6 +128,14 @@ SERIAL_COPY_OBJECT_FROM_OBJ (void **obj_slot, SgenGrayQueue *queue)
 	}
 
 	SGEN_LOG (9, "Precise copy of %p from %p", obj, obj_slot);
+    if(obj)
+    {
+        MonoVTable*vt = (MonoVTable*)SGEN_LOAD_VTABLE(obj);
+        if(vt)
+        {
+            vt->age++;
+        }
+    }
 
 	/*
 	 * Before we can copy the object we must make sure that we are
@@ -159,7 +167,7 @@ SERIAL_COPY_OBJECT_FROM_OBJ (void **obj_slot, SgenGrayQueue *queue)
 	if (sgen_nursery_is_to_space (obj)) {
 		SGEN_ASSERT (9, ((MonoVTable*)SGEN_LOAD_VTABLE(obj))->gc_descr, "to space object %p has no gc descriptor", obj);
 		SGEN_LOG (9, " (tospace, no change)");
-		HEAVY_STAT (++stat_nursery_copy_object_failed_to_space);		
+		HEAVY_STAT (++stat_nursery_copy_object_failed_to_space);
 
 		/*
 		 * FIXME:
@@ -238,6 +246,11 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 	vtable_word = *(mword*)obj;
 	vt = (MonoVTable*)(vtable_word & ~SGEN_VTABLE_BITS_MASK);
 
+    if(vt)
+    {
+        vt->age++;
+    }
+
 	/*
 	 * Before we can copy the object we must make sure that we are
 	 * allowed to, i.e. that the object not pinned, not already
@@ -255,7 +268,7 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 	}
 
 	if (sgen_nursery_is_to_space (obj)) {
-		HEAVY_STAT (++stat_nursery_copy_object_failed_to_space);		
+		HEAVY_STAT (++stat_nursery_copy_object_failed_to_space);
 		return;
 	}
 

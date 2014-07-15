@@ -90,7 +90,7 @@ mono_gc_base_init (void)
 		pthread_attr_t attr;
 		pthread_getattr_np (pthread_self (), &attr);
 		pthread_attr_getstack (&attr, &sstart, &size);
-		pthread_attr_destroy (&attr); 
+		pthread_attr_destroy (&attr);
 		/*g_print ("stackbottom pth is: %p\n", (char*)sstart + size);*/
 #ifdef __ia64__
 		/*
@@ -198,7 +198,7 @@ mono_gc_base_init (void)
 	cb.thread_exit = mono_gc_pthread_exit;
 	cb.mono_gc_pthread_create = (gpointer)mono_gc_pthread_create;
 #endif
-	
+
 	mono_threads_init (&cb, sizeof (MonoThreadInfo));
 	mono_mutex_init (&mono_gc_lock);
 
@@ -242,6 +242,23 @@ int
 mono_gc_max_generation (void)
 {
 	return 0;
+}
+
+/**
+ * mono_gc_get_object_age:
+ * @object: a managed object
+ *
+ * Get the precise age of the @object. This is the number of
+ * times the object survived collection
+ *
+ * Use this has a hint only.
+ *
+ * Returns: the age, -1 if not implemented
+ */
+int
+mono_gc_get_object_age  (MonoObject *object)
+{
+	return -1;
 }
 
 /**
@@ -458,7 +475,7 @@ on_gc_notification (GCEventType event)
 
 	mono_profiler_gc_event (e, 0);
 }
- 
+
 static void
 on_gc_heap_resize (size_t new_size)
 {
@@ -777,7 +794,7 @@ create_allocator (int atype, int tls_key)
 
 	/* int index = INDEX_FROM_BYTES(bytes); */
 	index_var = mono_mb_add_local (mb, &mono_defaults.int32_class->byval_arg);
-	
+
 	mono_mb_emit_ldloc (mb, bytes_var);
 	mono_mb_emit_icon (mb, GRANULARITY - 1);
 	mono_mb_emit_byte (mb, MONO_CEE_ADD);
@@ -890,7 +907,7 @@ create_allocator (int atype, int tls_key)
 	/* return my_entry; */
 	mono_mb_emit_ldloc (mb, my_entry_var);
 	mono_mb_emit_byte (mb, MONO_CEE_RET);
-	
+
 	mono_mb_patch_short_branch (mb, no_freelist_branch);
 	if (not_small_enough_branch > 0)
 		mono_mb_patch_short_branch (mb, not_small_enough_branch);

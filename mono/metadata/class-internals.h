@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2012 Xamarin Inc
  */
 #ifndef __MONO_METADATA_CLASS_INTERBALS_H__
@@ -26,7 +26,7 @@ typedef struct _MonoMethodPInvoke MonoMethodPInvoke;
 
 /* Properties that applies to a group of structs should better use a higher number
  * to avoid colision with type specific properties.
- * 
+ *
  * This prop applies to class, method, property, event, assembly and image.
  */
 #define MONO_PROP_DYNAMIC_CATTR 0x1000
@@ -85,7 +85,7 @@ struct _MonoMethod {
 	signed int slot : 16;
 
 	/*
-	 * If is_generic is TRUE, the generic_container is stored in image->property_hash, 
+	 * If is_generic is TRUE, the generic_container is stored in image->property_hash,
 	 * using the key MONO_METHOD_PROP_GENERIC_CONTAINER.
 	 */
 };
@@ -104,9 +104,9 @@ struct _MonoMethodPInvoke {
 	guint16 implmap_idx;  /* index into IMPLMAP */
 };
 
-/* 
+/*
  * Stores the default value / RVA of fields.
- * This information is rarely needed, so it is stored separately from 
+ * This information is rarely needed, so it is stored separately from
  * MonoClassField.
  */
 typedef struct MonoFieldDefaultValue {
@@ -225,7 +225,7 @@ typedef struct {
 
 #define MONO_CLASS_PROP_EXCEPTION_DATA 0
 
-/* 
+/*
  * This structure contains the rarely used fields of MonoClass
  * Since using just one field causes the whole structure to be allocated, it should
  * be used for fields which are only used in like 5% of all classes.
@@ -257,16 +257,16 @@ typedef struct {
 
 struct _MonoClass {
 	/* element class for arrays and enum basetype for enums */
-	MonoClass *element_class; 
+	MonoClass *element_class;
 	/* used for subtype checks */
-	MonoClass *cast_class; 
+	MonoClass *cast_class;
 
 	/* for fast subtype checks */
 	MonoClass **supertypes;
 	guint16     idepth;
 
 	/* array dimension */
-	guint8     rank;          
+	guint8     rank;
 
 	int        instance_size; /* object instance size */
 
@@ -276,10 +276,10 @@ struct _MonoClass {
 
 	/* A class contains static and non static data. Static data can be
 	 * of the same type as the class itselfs, but it does not influence
-	 * the instance size of the class. To avoid cyclic calls to 
-	 * mono_class_init (from mono_class_instance_size ()) we first 
-	 * initialise all non static fields. After that we set size_inited 
-	 * to 1, because we know the instance size now. After that we 
+	 * the instance size of the class. To avoid cyclic calls to
+	 * mono_class_init (from mono_class_instance_size ()) we first
+	 * initialise all non static fields. After that we set size_inited
+	 * to 1, because we know the instance size now. After that we
 	 * initialise all static fields.
 	 */
 	/* size_inited is accessed without locks, so it needs a memory barrier */
@@ -295,8 +295,8 @@ struct _MonoClass {
 	guint packing_size    : 4;
 	/* still 4 bits free */
 	/* next byte */
-	guint ghcimpl         : 1; /* class has its own GetHashCode impl */ 
-	guint has_finalize    : 1; /* class has its own Finalize impl */ 
+	guint ghcimpl         : 1; /* class has its own GetHashCode impl */
+	guint has_finalize    : 1; /* class has its own Finalize impl */
 #ifndef DISABLE_REMOTING
 	guint marshalbyref    : 1; /* class is a MarshalByRefObject */
 	guint contextbound    : 1; /* class is a ContextBoundObject */
@@ -313,7 +313,7 @@ struct _MonoClass {
 	 * for COM Interop. set this flag on loading so all we need is a quick check
 	 * during object creation rather than having to traverse supertypes
 	 */
-	guint is_com_object : 1; 
+	guint is_com_object : 1;
 	guint nested_classes_inited : 1; /* Whenever nested_class is initialized */
 	guint interfaces_inited : 1; /* interfaces is initialized */
 	guint simd_type : 1; /* class is a simd intrinsic type */
@@ -343,7 +343,7 @@ struct _MonoClass {
 	guint16     interface_count;
 	guint16     interface_id;        /* unique inderface id (for interfaces) */
 	guint16     max_interface_id;
-	
+
 	guint16     interface_offsets_count;
 	MonoClass **interfaces_packed;
 	guint16    *interface_offsets_packed;
@@ -451,11 +451,13 @@ struct MonoVTable {
 	 * According to comments in gc_gcj.h, this should be the second word in
 	 * the vtable.
 	 */
-	void *gc_descr; 	
+	void *gc_descr;
 	MonoDomain *domain;  /* each object/vtable belongs to exactly one domain */
         gpointer    type; /* System.Type type for klass */
 	guint8     *interface_bitmap;
 	guint16     max_interface_id;
+    /* the precise age of the object */
+    guint32     age;
 	guint8      rank;
 	guint remote          : 1; /* class is remotely activated */
 	guint initialized     : 1; /* cctor has been run */
@@ -468,7 +470,7 @@ struct MonoVTable {
 	/* do not add any fields after vtable, the structure is dynamically extended */
 	/* vtable contains function pointers to methods or their trampolines, at the
 	 end there may be a slot containing the pointer to the static fields */
-	gpointer    vtable [MONO_ZERO_LEN_ARRAY];	
+	gpointer    vtable [MONO_ZERO_LEN_ARRAY];
 };
 
 #define MONO_SIZEOF_VTABLE (sizeof (MonoVTable) - MONO_ZERO_LEN_ARRAY * SIZEOF_VOID_P)
@@ -532,7 +534,7 @@ struct _MonoGenericClass {
 	guint is_tb_open  : 1;		/* This is the fully open instantiation for a type_builder. Quite ugly, but it's temporary.*/
 	MonoClass *cached_class;	/* if present, the MonoClass corresponding to the instantiation.  */
 
-	/* 
+	/*
 	 * The image set which owns this generic class. Memory owned by the generic class
 	 * including cached_class should be allocated from the mempool of the image set,
 	 * so it is easy to free.
@@ -563,7 +565,7 @@ struct _MonoGenericParam {
 	guint16 num;
 	/* For internal runtime use, used to make different versions of the same param */
 	guint16 serial;
-	/* 
+	/*
 	 * If owner is NULL, or owner is 'owned' by this gparam,
 	 * then this is the image whose mempool this struct was allocated from.
 	 * The second case happens for gparams created in
@@ -608,7 +610,7 @@ struct _MonoGenericContainer {
 	/* Our type parameters. */
 	MonoGenericParamFull *type_params;
 
-	/* 
+	/*
 	 * For owner-less containers created by SRE, the image the container was
 	 * allocated from.
 	 */
@@ -747,7 +749,7 @@ typedef struct {
 	gboolean enabled;
 } MonoStats;
 
-/* 
+/*
  * new structure to hold performace counters values that are exported
  * to managed code.
  * Note: never remove fields from this structure and only add them to the end.
