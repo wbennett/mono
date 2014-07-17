@@ -44,7 +44,7 @@ static int no_finalize = 0;
 #define DISLINK_TRACK(l)	((~(gulong)(*(void**)(l))) & 1)
 
 /*
- * The finalizable hash has the object as the key, the 
+ * The finalizable hash has the object as the key, the
  * disappearing_link hash, has the link address as key.
  *
  * Copyright 2011 Xamarin Inc.
@@ -143,7 +143,7 @@ sgen_collect_bridge_objects (int generation, ScanCopyContext ctx)
 		copy_func ((void**)&copy, queue);
 
 		sgen_bridge_register_finalized_object ((MonoObject*)copy);
-		
+
 		if (hash_table == &minor_finalizable_hash && !ptr_in_nursery (copy)) {
 			/* remove from the list */
 			SGEN_HASH_TABLE_FOREACH_REMOVE (TRUE);
@@ -787,7 +787,7 @@ sgen_remove_finalizers_for_domain (MonoDomain *domain, int generation)
 			SGEN_HASH_TABLE_FOREACH_REMOVE (TRUE);
 			continue;
 		}
-	} SGEN_HASH_TABLE_FOREACH_END;	
+	} SGEN_HASH_TABLE_FOREACH_END;
 }
 
 /* LOCKING: requires that the GC lock is held */

@@ -56,7 +56,7 @@ mono_gc_get_generation  (MonoObject *object)
  *
  * Returns: the age, -1 if not implemented
  */
-int
+gint32
 mono_gc_get_object_age  (MonoObject *object)
 {
 	return -1;

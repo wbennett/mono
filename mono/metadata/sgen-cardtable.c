@@ -35,7 +35,7 @@
 #include "utils/mono-time.h"
 #include "utils/mono-memory-model.h"
 
-//#define CARDTABLE_STATS
+#define CARDTABLE_STATS
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -94,7 +94,7 @@ sgen_card_table_wbarrier_set_arrayref (MonoArray *arr, gpointer slot_ptr, MonoOb
 	*(void**)slot_ptr = value;
 	if (need_mod_union || sgen_ptr_in_nursery (value))
 		sgen_card_table_mark_address ((mword)slot_ptr);
-	sgen_dummy_use (value);	
+	sgen_dummy_use (value);
 }
 
 static void
@@ -125,7 +125,7 @@ sgen_card_table_wbarrier_arrayref_copy (gpointer dest_ptr, gpointer src_ptr, int
 				sgen_card_table_mark_address ((mword)dest);
 			sgen_dummy_use (value);
 		}
-	}	
+	}
 }
 
 static void
@@ -167,13 +167,13 @@ sgen_card_table_wbarrier_object_copy (MonoObject* obj, MonoObject *src)
 	UNLOCK_GC;
 #else
 	EXIT_CRITICAL_REGION;
-#endif	
+#endif
 }
 
 static void
 sgen_card_table_wbarrier_generic_nostore (gpointer ptr)
 {
-	sgen_card_table_mark_address ((mword)ptr);	
+	sgen_card_table_mark_address ((mword)ptr);
 }
 
 #ifdef SGEN_HAVE_OVERLAPPING_CARDS
@@ -389,6 +389,7 @@ clear_cards (mword start, mword size)
 static void
 clear_cards (mword start, mword size)
 {
+    SGEN_LOG(0,"%s: for %p",__FUNCTION__, sgen_card_table_get_card_address(start));
 	memset (sgen_card_table_get_card_address (start), 0, cards_in_range (start, size));
 }
 
@@ -412,6 +413,7 @@ sgen_card_table_finish_minor_collection (void)
 static void
 sgen_card_table_finish_scan_remsets (void *start_nursery, void *end_nursery, SgenGrayQueue *queue)
 {
+    SGEN_LOG(0,"%s: for %p to %p",__FUNCTION__, start_nursery, end_nursery);
 	SGEN_TV_DECLARE (atv);
 	SGEN_TV_DECLARE (btv);
 
@@ -429,7 +431,7 @@ sgen_card_table_finish_scan_remsets (void *start_nursery, void *end_nursery, Sge
 	SGEN_TV_GETTIME (atv);
 	sgen_major_collector_scan_card_table (queue);
 	SGEN_TV_GETTIME (btv);
-	last_major_scan_time = SGEN_TV_ELAPSED (atv, btv); 
+	last_major_scan_time = SGEN_TV_ELAPSED (atv, btv);
 	major_card_scan_time += last_major_scan_time;
 	sgen_los_scan_card_table (FALSE, queue);
 	SGEN_TV_GETTIME (atv);
@@ -555,6 +557,7 @@ find_next_card (guint8 *card_data, guint8 *end)
 void
 sgen_cardtable_scan_object (char *obj, mword block_obj_size, guint8 *cards, gboolean mod_union, SgenGrayQueue *queue)
 {
+    SGEN_LOG(0,"%s: for %p",__FUNCTION__,obj);
 	MonoVTable *vt = (MonoVTable*)SGEN_LOAD_VTABLE (obj);
 	MonoClass *klass = vt->klass;
 
@@ -680,7 +683,7 @@ LOOP_HEAD:
 #ifdef CARDTABLE_STATS
 
 typedef struct {
-	int total, marked, remarked, gc_marked;	
+	int total, marked, remarked, gc_marked;
 } card_stats;
 
 static card_stats major_stats, los_stats;
@@ -732,7 +735,7 @@ sgen_card_tables_collect_stats (gboolean begin)
 		sgen_major_collector_iterate_live_block_ranges (count_remarked_cards);
 		cur_stats = &los_stats;
 		sgen_los_iterate_live_block_ranges (count_remarked_cards);
-		printf ("cards major (t %d m %d g %d r %d)  los (t %d m %d g %d r %d) major_scan %.2fms los_scan %.2fms\n", 
+		printf ("cards major (t %d m %d g %d r %d)  los (t %d m %d g %d r %d) major_scan %.2fms los_scan %.2fms\n",
 			major_stats.total, major_stats.marked, major_stats.gc_marked, major_stats.remarked,
 			los_stats.total, los_stats.marked, los_stats.gc_marked, los_stats.remarked,
 			last_major_scan_time / 1000.0, last_los_scan_time / 1000.0);

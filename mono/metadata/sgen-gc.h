@@ -361,7 +361,7 @@ typedef struct {
 #endif
 
 /*
-List of what each bit on of the vtable gc bits means. 
+List of what each bit on of the vtable gc bits means.
 */
 enum {
 	SGEN_GC_BIT_BRIDGE_OBJECT = 1,
@@ -913,6 +913,7 @@ void sgen_nursery_alloc_prepare_for_major (void) MONO_INTERNAL;
 char* sgen_alloc_for_promotion (char *obj, size_t objsize, gboolean has_references) MONO_INTERNAL;
 char* sgen_par_alloc_for_promotion (char *obj, size_t objsize, gboolean has_references) MONO_INTERNAL;
 
+
 /* TLS Data */
 
 extern MonoNativeTlsKey thread_info_key;
@@ -941,7 +942,7 @@ extern __thread char *stack_end;
 /* Enter must be visible before anything is done in the critical region. */
 #define ENTER_CRITICAL_REGION do { mono_atomic_store_acquire (&IN_CRITICAL_REGION, 1); } while (0)
 
-/* Exit must make sure all critical regions stores are visible before it signal the end of the region. 
+/* Exit must make sure all critical regions stores are visible before it signal the end of the region.
  * We don't need to emit a full barrier since we
  */
 #define EXIT_CRITICAL_REGION  do { mono_atomic_store_release (&IN_CRITICAL_REGION, 0); } while (0)

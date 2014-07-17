@@ -457,7 +457,6 @@ struct MonoVTable {
 	guint8     *interface_bitmap;
 	guint16     max_interface_id;
     /* the precise age of the object */
-    guint32     age;
 	guint8      rank;
 	guint remote          : 1; /* class is remotely activated */
 	guint initialized     : 1; /* cctor has been run */

@@ -1496,19 +1496,20 @@ conservatively_pin_objects_from (void **start, void **end, void *start_nursery, 
 			mword addr = (mword)*start;
 			addr &= ~(ALLOC_ALIGN - 1);
 			if (addr >= (mword)start_nursery && addr < (mword)end_nursery) {
-				SGEN_LOG (6, "Pinning address %p from %p", (void*)addr, start);
 				sgen_pin_stage_ptr ((void*)addr);
 				count++;
 			}
 			if (G_UNLIKELY (do_pin_stats)) {
 				if (ptr_in_nursery ((void*)addr))
+                {
 					sgen_pin_stats_register_address ((char*)addr, pin_type);
+                }
 			}
 		}
 		start++;
 	}
 	if (count)
-		SGEN_LOG (7, "found %d potential pinned heap pointers", count);
+		SGEN_LOG (0, "found %d potential pinned heap pointers", count);
 }
 
 /*
@@ -1524,7 +1525,8 @@ pin_from_roots (void *start_nursery, void *end_nursery, GrayQueue *queue)
 	SGEN_LOG (2, "Scanning pinned roots (%d bytes, %d/%d entries)", (int)roots_size, roots_hash [ROOT_TYPE_NORMAL].num_entries, roots_hash [ROOT_TYPE_PINNED].num_entries);
 	/* objects pinned from the API are inside these roots */
 	SGEN_HASH_TABLE_FOREACH (&roots_hash [ROOT_TYPE_PINNED], start_root, root) {
-		SGEN_LOG (6, "Pinned roots %p-%p", start_root, root->end_root);
+		//SGEN_LOG (6, "Pinned roots %p-%p", start_root, root->end_root);
+		SGEN_LOG (0, "Pinned roots %p-%p", start_root, root->end_root);
 		conservatively_pin_objects_from (start_root, (void**)root->end_root, start_nursery, end_nursery, PIN_TYPE_OTHER);
 	} SGEN_HASH_TABLE_FOREACH_END;
 	/* now deal with the thread stacks
@@ -1534,6 +1536,7 @@ pin_from_roots (void *start_nursery, void *end_nursery, GrayQueue *queue)
 	 * *) the _last_ managed stack frame
 	 * *) pointers slots in managed frames
 	 */
+	SGEN_LOG (0, "Pinned roots %p-%p", start_nursery, end_nursery);
 	scan_thread_data (start_nursery, end_nursery, FALSE, queue);
 }
 
@@ -1588,6 +1591,7 @@ single_arg_user_copy_or_mark (void **obj)
 static void
 precisely_scan_objects_from (void** start_root, void** end_root, char* n_start, char *n_end, mword desc, ScanCopyContext ctx)
 {
+    SGEN_LOG(0,"%s:%d from %p to %p",__FUNCTION__,__LINE__,*start_root,*end_root);
 	CopyOrMarkObjectFunc copy_func = ctx.copy_func;
 	SgenGrayQueue *queue = ctx.queue;
 
@@ -2487,10 +2491,12 @@ static void
 init_gray_queue (void)
 {
 	if (sgen_collection_is_parallel () || sgen_collection_is_concurrent ()) {
+        SGEN_LOG(0,"%s: parallel",__FUNCTION__);
 		sgen_workers_init_distribute_gray_queue ();
 		sgen_gray_object_queue_init_with_alloc_prepare (&gray_queue, NULL,
 				gray_queue_redirect, sgen_workers_get_distribute_section_gray_queue ());
 	} else {
+        SGEN_LOG(0,"%s: serial",__FUNCTION__);
 		sgen_gray_object_queue_init (&gray_queue, NULL);
 	}
 }
@@ -2591,6 +2597,7 @@ collect_nursery (SgenGrayQueue *unpin_queue, gboolean finish_up_concurrent_mark)
 	sgen_init_pinning ();
 	mono_profiler_gc_event (MONO_GC_EVENT_MARK_START, 0);
 	pin_from_roots (sgen_get_nursery_start (), nursery_next, WORKERS_DISTRIBUTE_GRAY_QUEUE);
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
 	/* pin cemented objects */
 	sgen_cement_iterate (pin_stage_object_callback, NULL);
 	/* identify pinned objects */
@@ -2739,6 +2746,7 @@ collect_nursery (SgenGrayQueue *unpin_queue, gboolean finish_up_concurrent_mark)
 	if (consistency_check_at_minor_collection)
 		sgen_check_major_refs ();
 
+    SGEN_LOG(0, "Finish nursery collection");
 	major_collector.finish_nursery_collection ();
 
 	TV_GETTIME (all_btv);
@@ -2778,18 +2786,22 @@ collect_nursery (SgenGrayQueue *unpin_queue, gboolean finish_up_concurrent_mark)
 	if (check_nursery_objects_pinned && !sgen_minor_collector.is_split)
 		sgen_check_nursery_objects_pinned (unpin_queue != NULL);
 
+    SGEN_LOG(0,"end of %s",__FUNCTION__);
+
 	return needs_major;
 }
 
 static void
 scan_nursery_objects_callback (char *obj, size_t size, ScanCopyContext *ctx)
 {
+    SGEN_LOG(0,"%s",__FUNCTION__);
 	ctx->scan_func (obj, ctx->queue);
 }
 
 static void
 scan_nursery_objects (ScanCopyContext ctx)
 {
+    SGEN_LOG(0,"%s",__FUNCTION__);
 	sgen_scan_area_with_callback (nursery_section->data, nursery_section->end_data,
 			(IterateObjectCallbackFunc)scan_nursery_objects_callback, (void*)&ctx, FALSE);
 }
@@ -2797,6 +2809,7 @@ scan_nursery_objects (ScanCopyContext ctx)
 static void
 major_copy_or_mark_from_roots (int *old_next_pin_slot, gboolean finish_up_concurrent_mark, gboolean scan_mod_union)
 {
+    SGEN_LOG(0,"%s",__FUNCTION__);
 	LOSObject *bigobj;
 	TV_DECLARE (atv);
 	TV_DECLARE (btv);
@@ -4039,18 +4052,18 @@ scan_thread_data (void *start_nursery, void *end_nursery, gboolean precise, Gray
 
 	FOREACH_THREAD (info) {
 		if (info->skip) {
-			SGEN_LOG (3, "Skipping dead thread %p, range: %p-%p, size: %td", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start);
+			SGEN_LOG (0, "Skipping dead thread %p, range: %p-%p, size: %td", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start);
 			continue;
 		}
 		if (info->gc_disabled) {
-			SGEN_LOG (3, "GC disabled for thread %p, range: %p-%p, size: %td", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start);
+			SGEN_LOG (0, "GC disabled for thread %p, range: %p-%p, size: %td", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start);
 			continue;
 		}
 		if (mono_thread_info_run_state (info) != STATE_RUNNING) {
-			SGEN_LOG (3, "Skipping non-running thread %p, range: %p-%p, size: %td (state %d)", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start, mono_thread_info_run_state (info));
+			SGEN_LOG (0, "Skipping non-running thread %p, range: %p-%p, size: %td (state %d)", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start, mono_thread_info_run_state (info));
 			continue;
 		}
-		SGEN_LOG (3, "Scanning thread %p, range: %p-%p, size: %td, pinned=%d", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start, sgen_get_pinned_count ());
+		SGEN_LOG (0, "Scanning thread %p, range: %p-%p, size: %td, pinned=%d", info, info->stack_start, info->stack_end, (char*)info->stack_end - (char*)info->stack_start, sgen_get_pinned_count ());
 		if (gc_callbacks.thread_mark_func && !conservative_stack_mark) {
 			UserCopyOrMarkData data = { NULL, queue };
 			set_user_copy_or_mark_data (&data);
@@ -4674,20 +4687,24 @@ mono_gc_get_generation (MonoObject *obj)
  *
  * Use this has a hint only.
  *
- * Returns: the age, -1 if not implemented
+ * Returns: the age, -1 if not implemented or if object null
  */
-int
+gint32
 mono_gc_get_object_age  (MonoObject *object)
 {
-    if(object &&
-        object->vtable)
+    SGEN_LOG(0,"Getting object age for %p", object);
+    if(object)
     {
-        //the MonoVTable with the object will contain age
-        //this age incremented by the collector implementation
-        return object->vtable->age;
+        SGEN_LOG(0,"%s:%d Object generation is (%s)",
+                __FUNCTION__,
+                __LINE__,
+                mono_gc_get_generation(object) == 0
+                ? "nursery" : "old gen"
+                );
+        return object->age;
     }
 
-    return 0;
+    return -1;
 }
 
 void

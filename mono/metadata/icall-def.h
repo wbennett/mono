@@ -33,7 +33,7 @@
  * When adding a new icall, make sure it is inserted correctly in the list and
  * that it defines a unique ID. ID are currently numbered and ordered, but if
  * you need to insert a method in the middle, don't bother renaming all the symbols.
- * Remember to change also the first_icall_id argument in the ICALL_TYPE 
+ * Remember to change also the first_icall_id argument in the ICALL_TYPE
  * declaration if you add a new icall at the beginning of a type's icall list.
  */
 ICALL_TYPE(UNORM, "Mono.Globalization.Unicode.Normalization", UNORM_1)
@@ -265,6 +265,7 @@ ICALL(ENV_20, "set_ExitCode", mono_environment_exitcode_set)
 ICALL_TYPE(GC, "System.GC", GC_0)
 ICALL(GC_0, "CollectionCount", mono_gc_collection_count)
 ICALL(GC_0a, "GetGeneration", mono_gc_get_generation)
+ICALL(GC_0b, "GetObjectAge", mono_gc_get_object_age)
 ICALL(GC_1, "GetTotalMemory", ves_icall_System_GC_GetTotalMemory)
 ICALL(GC_2, "InternalCollect", ves_icall_System_GC_InternalCollect)
 ICALL(GC_3, "KeepAlive", ves_icall_System_GC_KeepAlive)

@@ -28,6 +28,7 @@ typedef struct _MonoAppContext MonoAppContext;
 
 typedef struct {
 	MonoVTable *vtable;
+    int32_t age;
 	MonoThreadsSync *synchronisation;
 } MonoObject;
 
@@ -46,7 +47,7 @@ typedef void	    (*MonoMainThreadFunc)    (void* user_data);
     } while (0)
 
 #define mono_array_addr(array,type,index) ((type*)(void*) mono_array_addr_with_size (array, sizeof (type), index))
-#define mono_array_get(array,type,index) ( *(type*)mono_array_addr ((array), type, (index)) ) 
+#define mono_array_get(array,type,index) ( *(type*)mono_array_addr ((array), type, (index)) )
 #define mono_array_set(array,type,index,value)	\
 	do {	\
 		type *__p = (type *) mono_array_addr ((array), type, (index));	\
@@ -181,7 +182,7 @@ mono_object_isinst_mbyref   (MonoObject *obj, MonoClass *klass);
 MONO_API MonoObject *
 mono_object_castclass_mbyref (MonoObject *obj, MonoClass *klass);
 
-MONO_API mono_bool 
+MONO_API mono_bool
 mono_monitor_try_enter       (MonoObject *obj, uint32_t ms);
 
 MONO_API mono_bool
@@ -190,7 +191,7 @@ mono_monitor_enter           (MonoObject *obj);
 MONO_API unsigned int
 mono_object_get_size         (MonoObject *o);
 
-MONO_API void 
+MONO_API void
 mono_monitor_exit            (MonoObject *obj);
 
 MONO_API void
@@ -219,7 +220,7 @@ MONO_API MonoMethod *
 mono_get_delegate_end_invoke (MonoClass *klass);
 
 MONO_API MonoObject*
-mono_runtime_delegate_invoke (MonoObject *delegate, void **params, 
+mono_runtime_delegate_invoke (MonoObject *delegate, void **params,
 			      MonoObject **exc);
 
 MONO_API MonoObject*
@@ -238,7 +239,7 @@ mono_runtime_exec_managed_code (MonoDomain *domain,
 				void* main_args);
 
 MONO_API int
-mono_runtime_run_main	    (MonoMethod *method, int argc, char* argv[], 
+mono_runtime_run_main	    (MonoMethod *method, int argc, char* argv[],
 			     MonoObject **exc);
 
 MONO_API int
@@ -270,7 +271,7 @@ mono_unhandled_exception    (MonoObject *exc);
 MONO_API void
 mono_print_unhandled_exception (MonoObject *exc);
 
-MONO_API void* 
+MONO_API void*
 mono_compile_method	   (MonoMethod *method);
 
 /* accessors for fields and properties */
@@ -295,14 +296,14 @@ mono_property_set_value (MonoProperty *prop, void *obj, void **params, MonoObjec
 MONO_API MonoObject*
 mono_property_get_value (MonoProperty *prop, void *obj, void **params, MonoObject **exc);
 
-/* GC handles support 
+/* GC handles support
  *
  * A handle can be created to refer to a managed object and either prevent it
- * from being garbage collected or moved or to be able to know if it has been 
+ * from being garbage collected or moved or to be able to know if it has been
  * collected or not (weak references).
  * mono_gchandle_new () is used to prevent an object from being garbage collected
  * until mono_gchandle_free() is called. Use a TRUE value for the pinned argument to
- * prevent the object from being moved (this should be avoided as much as possible 
+ * prevent the object from being moved (this should be avoided as much as possible
  * and this should be used only for shorts periods of time or performance will suffer).
  * To create a weakref use mono_gchandle_new_weakref (): track_resurrection should
  * usually be false (see the GC docs for more details).

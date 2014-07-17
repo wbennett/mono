@@ -30,6 +30,7 @@ static void** pin_queue;
 static int pin_queue_size = 0;
 static int next_pin_slot = 0;
 static int last_num_pinned = 0;
+extern void describe_pointer_sgen_log(char*,gboolean);
 
 #define PIN_HASH_SIZE 1024
 static void *pin_hash_filter [PIN_HASH_SIZE];
@@ -47,6 +48,47 @@ sgen_finish_pinning (void)
 	next_pin_slot = 0;
 }
 
+static gboolean
+is_valid_live_object_pointer(char *object)
+{
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+    if(!major_collector.is_object_live(object))
+        return FALSE;
+
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+
+    if(sgen_ptr_in_nursery(object))
+        return TRUE;
+
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+
+    if(sgen_los_is_valid_object(object))
+        return TRUE;
+
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+
+    if(major_collector.is_valid_object(object))
+        return TRUE;
+
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+
+    return FALSE;
+}
+
+static void
+increment_object_age(char *ptr)
+{
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+    if(!is_valid_live_object_pointer(ptr))
+        return;
+    SGEN_LOG(0,"%s:%d",__FUNCTION__,__LINE__);
+
+    MonoObject*mo = (MonoObject*)ptr;
+    SGEN_LOG(0,"%s:%d pre object %p age %d",__FUNCTION__,__LINE__,mo,mo->age);
+    mo->age++;
+    SGEN_LOG(0,"%s:%d post object %p age %d",__FUNCTION__,__LINE__,mo,mo->age);
+}
+
 static void
 realloc_pin_queue (void)
 {
@@ -62,10 +104,20 @@ realloc_pin_queue (void)
 void
 sgen_pin_stage_ptr (void *ptr)
 {
-	/*very simple multiplicative hash function, tons better than simple and'ng */ 
+	/*very simple multiplicative hash function, tons better than simple and'ng */
 	int hash_idx = ((mword)ptr * 1737350767) & (PIN_HASH_SIZE - 1);
+    SGEN_LOG(0,"%s:%d for %p %d",
+            __FUNCTION__,
+            __LINE__,
+            ptr,
+            hash_idx);
 	if (pin_hash_filter [hash_idx] == ptr)
 		return;
+
+    SGEN_LOG(0,"%s,%d describing pointer %p",__FUNCTION__,__LINE__,ptr);
+    describe_pointer_sgen_log ((char*)ptr,TRUE);
+
+    increment_object_age((char*)ptr);
 
 	pin_hash_filter [hash_idx] = ptr;
 
@@ -177,7 +229,7 @@ sgen_dump_pin_queue (void)
 
 	for (i = 0; i < last_num_pinned; ++i) {
 		SGEN_LOG (3, "Bastard pinning obj %p (%s), size: %d", pin_queue [i], sgen_safe_name (pin_queue [i]), sgen_safe_object_get_size (pin_queue [i]));
-	}	
+	}
 }
 
 typedef struct _CementHashEntry CementHashEntry;

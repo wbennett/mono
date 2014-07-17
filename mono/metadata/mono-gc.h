@@ -13,7 +13,7 @@ typedef int (*MonoGCReferences) (MonoObject *obj, MonoClass *klass, uintptr_t si
 
 MONO_API void   mono_gc_collect         (int generation);
 MONO_API int    mono_gc_max_generation  (void);
-MONO_API int mono_gc_get_object_age  (MonoObject *object);
+MONO_API int32_t mono_gc_get_object_age  (MonoObject *object);
 MONO_API int    mono_gc_get_generation  (MonoObject *object);
 MONO_API int    mono_gc_collection_count (int generation);
 MONO_API int64_t mono_gc_get_used_size   (void);

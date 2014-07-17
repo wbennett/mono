@@ -166,6 +166,85 @@ static gboolean missing_remsets;
 	}																	\
 	} while (0)
 
+void
+describe_pointer_sgen_log (char *ptr, gboolean need_setup)
+{
+	MonoVTable *vtable;
+	mword desc;
+	int type;
+	char *start;
+	char *forwarded;
+	mword size;
+
+ restart:
+	if (sgen_ptr_in_nursery (ptr)) {
+		start = describe_nursery_ptr (ptr, need_setup);
+		if (!start)
+			return;
+		ptr = start;
+		vtable = (MonoVTable*)LOAD_VTABLE (ptr);
+	} else {
+		if (sgen_ptr_is_in_los (ptr, &start)) {
+			if (ptr == start)
+				SGEN_LOG(0,"Pointer is the start of object %p in LOS space.\n", start);
+			else
+				SGEN_LOG(0,"Pointer is at offset 0x%x of object %p in LOS space.\n", (int)(ptr - start), start);
+			ptr = start;
+			mono_sgen_los_describe_pointer (ptr);
+			vtable = (MonoVTable*)LOAD_VTABLE (ptr);
+		} else if (major_collector.ptr_is_in_non_pinned_space (ptr, &start)) {
+			if (ptr == start)
+				SGEN_LOG(0,"Pointer is the start of object %p in oldspace.\n", start);
+			else if (start)
+				SGEN_LOG(0,"Pointer is at offset 0x%x of object %p in oldspace.\n", (int)(ptr - start), start);
+			else
+				SGEN_LOG(0,"Pointer inside oldspace.\n");
+			if (start)
+				ptr = start;
+			vtable = major_collector.describe_pointer (ptr);
+		} else if (major_collector.obj_is_from_pinned_alloc (ptr)) {
+			// FIXME: Handle pointers to the inside of objects
+			SGEN_LOG(0,"Pointer is inside a pinned chunk.\n");
+			vtable = (MonoVTable*)LOAD_VTABLE (ptr);
+		} else {
+			SGEN_LOG(0,"Pointer unknown.\n");
+			return;
+		}
+	}
+
+	if (object_is_pinned (ptr))
+		SGEN_LOG(0,"Object is pinned.\n");
+
+	if ((forwarded = object_is_forwarded (ptr))) {
+		SGEN_LOG(0,"Object is forwarded to %p:\n", forwarded);
+		ptr = forwarded;
+		goto restart;
+	}
+
+	printf ("VTable: %p\n", vtable);
+	if (vtable == NULL) {
+		SGEN_LOG(0,"VTable is invalid (empty).\n");
+		goto bridge;
+	}
+	if (sgen_ptr_in_nursery (vtable)) {
+		SGEN_LOG(0,"VTable is invalid (points inside nursery).\n");
+		goto bridge;
+	}
+	SGEN_LOG(0,"Class: %s\n", vtable->klass->name);
+
+	desc = ((GCVTable*)vtable)->desc;
+	SGEN_LOG(0,"Descriptor: %lx\n", (long)desc);
+
+	type = desc & 0x7;
+	SGEN_LOG(0,"Descriptor type: %d (%s)\n", type, descriptor_types [type]);
+
+	size = sgen_safe_object_get_size ((MonoObject*)ptr);
+	SGEN_LOG(0,"Size: %d\n", (int)size);
+
+ bridge:
+	sgen_bridge_describe_pointer ((MonoObject*)ptr);
+}
+
 /*
  * Check that each object reference which points into the nursery can
  * be found in the remembered sets.
@@ -305,7 +384,7 @@ static char **valid_nursery_objects;
 static int valid_nursery_object_count;
 static gboolean broken_heap;
 
-static void 
+static void
 setup_mono_sgen_scan_area_with_callback (char *object, size_t size, void *data)
 {
 	valid_nursery_objects [valid_nursery_object_count++] = object;
@@ -369,7 +448,7 @@ is_valid_object_pointer (char *object)
 {
 	if (sgen_ptr_in_nursery (object))
 		return find_object_in_nursery_dump (object);
-	
+
 	if (sgen_los_is_valid_object (object))
 		return TRUE;
 
@@ -398,7 +477,7 @@ missing_remset_spew (char *obj, char **slot)
 	MonoVTable *vtable = (MonoVTable*)LOAD_VTABLE (obj);
 
 	SGEN_LOG (0, "Oldspace->newspace reference %p at offset %td in object %p (%s.%s) not found in remsets.",
- 		ptr, (char*)slot - obj, obj, 
+ 		ptr, (char*)slot - obj, obj,
 		vtable->klass->name_space, vtable->klass->name);
 
 	broken_heap = TRUE;
@@ -450,7 +529,7 @@ ptr_in_heap (char *object)
 {
 	if (sgen_ptr_in_nursery (object))
 		return TRUE;
-	
+
 	if (sgen_los_is_valid_object (object))
 		return TRUE;
 
