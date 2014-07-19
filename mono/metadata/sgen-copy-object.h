@@ -26,6 +26,34 @@ extern long long stat_nursery_copy_object_failed_forwarded;
 extern long long stat_nursery_copy_object_failed_pinned;
 
 extern long long stat_slots_allocated_in_vain;
+extern int mono_gc_collection_count(int gen);
+
+
+static inline void
+set_tenure(MonoObject*src,MonoObject*mo)
+{
+    if(src &&
+            mo &&
+        !sgen_ptr_in_nursery(mo))
+    {
+        /*
+         * subtract age from the young generation count
+         *
+         * When the age is retrieved, it will look where the pointer lives and
+         * will subtract the generation count from the birthday generation.
+         *
+         * (ie) if the object is born at G0=0, tenures at G0=3:G1=0, the birth gen will be -3.
+         * When the age is retrieved at G1=3, the objects age will 6 and is computed as (3 - (-3))
+         */
+        mo->birth_gen = mono_gc_collection_count(1) -
+            (mono_gc_collection_count(0) - src->birth_gen);
+        SGEN_COND_LOGT(0,mo->birth_gen==0," (g1=%d - (g0=%d - srcbirth=%d))",
+                mono_gc_collection_count(1),
+                mono_gc_collection_count(0),
+                src->birth_gen
+                );
+    }
+}
 
 /*
  * This function can be used even if the vtable of obj is not valid
@@ -34,6 +62,7 @@ extern long long stat_slots_allocated_in_vain;
 static inline void
 par_copy_object_no_checks (char *destination, MonoVTable *vt, void *obj, mword objsize, SgenGrayQueue *queue)
 {
+    MonoObject*mo;
 #ifdef __GNUC__
 	static const void *copy_labels [] = { &&LAB_0, &&LAB_1, &&LAB_2, &&LAB_3, &&LAB_4, &&LAB_5, &&LAB_6, &&LAB_7, &&LAB_8 };
 #endif
@@ -41,6 +70,26 @@ par_copy_object_no_checks (char *destination, MonoVTable *vt, void *obj, mword o
 	SGEN_ASSERT (9, vt->klass->inited, "vtable %p for class %s:%s was not initialized", vt, vt->klass->name_space, vt->klass->name);
 	SGEN_LOG (9, " (to %p, %s size: %lu)", destination, ((MonoObject*)obj)->vtable->klass->name, (unsigned long)objsize);
 	binary_protocol_copy (obj, destination, vt, objsize);
+
+    SGEN_LOGT(9," moving object (%s) %p to %p ",sgen_safe_name(obj),obj,destination);
+    mo = (MonoObject*)destination;
+    //if we are moving from the nursery to the next gen, set the tenure age
+    if(sgen_ptr_in_nursery(obj) &&
+        !sgen_ptr_in_nursery(destination))
+    {
+        SGEN_LOGT(0,
+                "setting tenure for (%s) %p from %p",
+                sgen_safe_name(mo),
+                destination,
+                obj);
+        set_tenure(obj,mo);
+        SGEN_COND_LOGT(0,
+                mo->birth_gen == 0,
+                " %p birth_gen is zero",
+                mo
+                );
+
+    }
 
 #ifdef ENABLE_DTRACE
 	if (G_UNLIKELY (MONO_GC_OBJ_MOVED_ENABLED ())) {

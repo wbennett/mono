@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{93EE601C-8B43-4AE1-B417-7BDCD0FE4C95}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -13,8 +13,6 @@
     <NoConfig>False</NoConfig>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>
-    </RootNamespace>
     <AssemblyName>corlib_test_net_4_5</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -22,7 +20,6 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <NoWarn>612,618,1699,168,219,618,672</NoWarn>
     <Optimize>false</Optimize>
     <DefineConstants>DEBUG;TRACE;INSIDE_CORLIB;LIBC;NET_1_1;NET_2_0;NET_3_0;NET_3_5;NET_4_0;NET_4_5;MONO_DATACONVERTER_STATIC_METHODS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -30,7 +27,6 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
-    <NoWarn>612,618,1699,168,219,618,672</NoWarn>
     <Optimize>true</Optimize>
     <DefineConstants>INSIDE_CORLIB;LIBC;NET_1_1;NET_2_0;NET_3_0;NET_3_5;NET_4_0;NET_4_5;MONO_DATACONVERTER_STATIC_METHODS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -499,6 +495,7 @@
     <Compile Include="Test\System\ExceptionCas.cs" />
     <Compile Include="Test\System\ExceptionTest.cs" />
     <Compile Include="Test\System\FloatingPointFormatterTest.cs" />
+    <Compile Include="Test\System\GCExtTest.cs" />
     <Compile Include="Test\System\GuidTest.cs" />
     <Compile Include="Test\System\Int16Test.cs" />
     <Compile Include="Test\System\Int32Test.cs" />
@@ -535,7 +532,8 @@
     <Compile Include="Test\System\UIntPtrTest.cs" />
     <Compile Include="Test\System\ValueTypeTest.cs" />
     <Compile Include="Test\System\VersionTest.cs" />
-    <Compile Include="Test\System\WeakReferenceTest.cs" />  </ItemGroup>
+    <Compile Include="Test\System\WeakReferenceTest.cs" />
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -545,32 +543,588 @@
   -->
   <PropertyGroup>
     <PreBuildEvent>
-
     </PreBuildEvent>
     <PostBuildEvent>
       xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
   </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="..\lib\net_4_5\nunit.framework.dll" />
-    <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{07C1F58B-9E99-47F8-A847-79EDA5157DA8}</Project>
-      <Name>corlib\corlib-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Mono.Posix\Mono.Posix-net_4_0.csproj">
-      <Project>{7ADB0D4D-F0ED-4C82-BEE3-D261699A390B}</Project>
-      <Name>Mono.Posix\Mono.Posix-net_4_0</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\System.Core\System.Core-net_4_0.csproj">
-      <Project>{D121EB80-19C6-4313-9BBE-6F66556CE8B7}</Project>
-      <Name>System.Core\System.Core-net_4_0</Name>
-    </ProjectReference>
+    <Reference Include="mscorlib">
+      <HintPath>..\lib\net_4_5\tmp\mscorlib.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>..\lib\net_4_5\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework.extensions">
+      <HintPath>..\lib\net_4_5\nunit.framework.extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.core">
+      <HintPath>..\lib\net_4_5\nunit.core.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.core.extensions">
+      <HintPath>..\lib\net_4_5\nunit.core.extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.core.interfaces">
+      <HintPath>..\lib\net_4_5\nunit.core.interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core">
+      <HintPath>..\lib\net_4_5\System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Accessibility">
+      <HintPath>..\lib\net_4_5\Accessibility.dll</HintPath>
+    </Reference>
+    <Reference Include="Commons.Xml.Relaxng">
+      <HintPath>..\lib\net_4_5\Commons.Xml.Relaxng.dll</HintPath>
+    </Reference>
+    <Reference Include="CustomMarshalers">
+      <HintPath>..\lib\net_4_5\CustomMarshalers.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer">
+      <HintPath>..\lib\net_4_5\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework">
+      <HintPath>..\lib\net_4_5\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="I18N.CJK">
+      <HintPath>..\lib\net_4_5\I18N.CJK.dll</HintPath>
+    </Reference>
+    <Reference Include="I18N.MidEast">
+      <HintPath>..\lib\net_4_5\I18N.MidEast.dll</HintPath>
+    </Reference>
+    <Reference Include="I18N.Other">
+      <HintPath>..\lib\net_4_5\I18N.Other.dll</HintPath>
+    </Reference>
+    <Reference Include="I18N.Rare">
+      <HintPath>..\lib\net_4_5\I18N.Rare.dll</HintPath>
+    </Reference>
+    <Reference Include="I18N.West">
+      <HintPath>..\lib\net_4_5\I18N.West.dll</HintPath>
+    </Reference>
+    <Reference Include="I18N">
+      <HintPath>..\lib\net_4_5\I18N.dll</HintPath>
+    </Reference>
+    <Reference Include="IBM.Data.DB2">
+      <HintPath>..\lib\net_4_5\IBM.Data.DB2.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\lib\net_4_5\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Build.Engine">
+      <HintPath>..\lib\net_4_5\Microsoft.Build.Engine.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Build.Framework">
+      <HintPath>..\lib\net_4_5\Microsoft.Build.Framework.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Build.Tasks.v4.0">
+      <HintPath>..\lib\net_4_5\Microsoft.Build.Tasks.v4.0.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Build.Utilities.v4.0">
+      <HintPath>..\lib\net_4_5\Microsoft.Build.Utilities.v4.0.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Build">
+      <HintPath>..\lib\net_4_5\Microsoft.Build.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp">
+      <HintPath>..\lib\net_4_5\Microsoft.CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualC">
+      <HintPath>..\lib\net_4_5\Microsoft.VisualC.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.Infrastructure">
+      <HintPath>..\lib\net_4_5\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.C5">
+      <HintPath>..\lib\net_4_5\Mono.C5.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.CSharp">
+      <HintPath>..\lib\net_4_5\Mono.CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cairo">
+      <HintPath>..\lib\net_4_5\Mono.Cairo.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cecil.Mdb">
+      <HintPath>..\lib\net_4_5\Mono.Cecil.Mdb.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cecil">
+      <HintPath>..\lib\net_4_5\Mono.Cecil.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.CodeContracts">
+      <HintPath>..\lib\net_4_5\Mono.CodeContracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.CompilerServices.SymbolWriter">
+      <HintPath>..\lib\net_4_5\Mono.CompilerServices.SymbolWriter.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Configuration.Crypto">
+      <HintPath>..\lib\net_4_5\Mono.Configuration.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Data.Sqlite">
+      <HintPath>..\lib\net_4_5\Mono.Data.Sqlite.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Data.Tds">
+      <HintPath>..\lib\net_4_5\Mono.Data.Tds.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Debugger.Soft">
+      <HintPath>..\lib\net_4_5\Mono.Debugger.Soft.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Http">
+      <HintPath>..\lib\net_4_5\Mono.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Management">
+      <HintPath>..\lib\net_4_5\Mono.Management.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Messaging.RabbitMQ">
+      <HintPath>..\lib\net_4_5\Mono.Messaging.RabbitMQ.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Messaging">
+      <HintPath>..\lib\net_4_5\Mono.Messaging.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Options">
+      <HintPath>..\lib\net_4_5\Mono.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Parallel">
+      <HintPath>..\lib\net_4_5\Mono.Parallel.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Posix">
+      <HintPath>..\lib\net_4_5\Mono.Posix.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Security.Win32">
+      <HintPath>..\lib\net_4_5\Mono.Security.Win32.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Security">
+      <HintPath>..\lib\net_4_5\Mono.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Simd">
+      <HintPath>..\lib\net_4_5\Mono.Simd.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Tasklets">
+      <HintPath>..\lib\net_4_5\Mono.Tasklets.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Tuner">
+      <HintPath>..\lib\net_4_5\Mono.Tuner.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Web">
+      <HintPath>..\lib\net_4_5\Mono.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.WebBrowser">
+      <HintPath>..\lib\net_4_5\Mono.WebBrowser.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.XBuild.Tasks">
+      <HintPath>..\lib\net_4_5\Mono.XBuild.Tasks.dll</HintPath>
+    </Reference>
+    <Reference Include="Novell.Directory.Ldap">
+      <HintPath>..\lib\net_4_5\Novell.Directory.Ldap.dll</HintPath>
+    </Reference>
+    <Reference Include="Npgsql">
+      <HintPath>..\lib\net_4_5\Npgsql.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenSystem.C">
+      <HintPath>..\lib\net_4_5\OpenSystem.C.dll</HintPath>
+    </Reference>
+    <Reference Include="PEAPI">
+      <HintPath>..\lib\net_4_5\PEAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="RabbitMQ.Client.Apigen">
+      <HintPath>..\lib\net_4_5\RabbitMQ.Client.Apigen.exe</HintPath>
+    </Reference>
+    <Reference Include="RabbitMQ.Client">
+      <HintPath>..\lib\net_4_5\RabbitMQ.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition">
+      <HintPath>..\lib\net_4_5\System.ComponentModel.Composition.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations">
+      <HintPath>..\lib\net_4_5\System.ComponentModel.DataAnnotations.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Configuration.Install">
+      <HintPath>..\lib\net_4_5\System.Configuration.Install.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Configuration">
+      <HintPath>..\lib\net_4_5\System.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <HintPath>..\lib\net_4_5\System.Data.DataSetExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.Linq">
+      <HintPath>..\lib\net_4_5\System.Data.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.OracleClient">
+      <HintPath>..\lib\net_4_5\System.Data.OracleClient.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.Services.Client">
+      <HintPath>..\lib\net_4_5\System.Data.Services.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.Services">
+      <HintPath>..\lib\net_4_5\System.Data.Services.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data">
+      <HintPath>..\lib\net_4_5\System.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Design">
+      <HintPath>..\lib\net_4_5\System.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="System.DirectoryServices.Protocols">
+      <HintPath>..\lib\net_4_5\System.DirectoryServices.Protocols.dll</HintPath>
+    </Reference>
+    <Reference Include="System.DirectoryServices">
+      <HintPath>..\lib\net_4_5\System.DirectoryServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing.Design">
+      <HintPath>..\lib\net_4_5\System.Drawing.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <HintPath>..\lib\net_4_5\System.Drawing.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Dynamic">
+      <HintPath>..\lib\net_4_5\System.Dynamic.dll</HintPath>
+    </Reference>
+    <Reference Include="System.EnterpriseServices">
+      <HintPath>..\lib\net_4_5\System.EnterpriseServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Compression.FileSystem">
+      <HintPath>..\lib\net_4_5\System.IO.Compression.FileSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Compression">
+      <HintPath>..\lib\net_4_5\System.IO.Compression.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IdentityModel.Selectors">
+      <HintPath>..\lib\net_4_5\System.IdentityModel.Selectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IdentityModel">
+      <HintPath>..\lib\net_4_5\System.IdentityModel.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Json.Microsoft">
+      <HintPath>..\lib\net_4_5\System.Json.Microsoft.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Json">
+      <HintPath>..\lib\net_4_5\System.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Management">
+      <HintPath>..\lib\net_4_5\System.Management.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Messaging">
+      <HintPath>..\lib\net_4_5\System.Messaging.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.Formatting">
+      <HintPath>..\lib\net_4_5\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.WebRequest">
+      <HintPath>..\lib\net_4_5\System.Net.Http.WebRequest.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <HintPath>..\lib\net_4_5\System.Net.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net">
+      <HintPath>..\lib\net_4_5\System.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics">
+      <HintPath>..\lib\net_4_5\System.Numerics.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Core">
+      <HintPath>..\lib\net_4_5\System.Reactive.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Debugger">
+      <HintPath>..\lib\net_4_5\System.Reactive.Debugger.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Experimental">
+      <HintPath>..\lib\net_4_5\System.Reactive.Experimental.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces">
+      <HintPath>..\lib\net_4_5\System.Reactive.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Linq">
+      <HintPath>..\lib\net_4_5\System.Reactive.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Observable.Aliases">
+      <HintPath>..\lib\net_4_5\System.Reactive.Observable.Aliases.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices">
+      <HintPath>..\lib\net_4_5\System.Reactive.PlatformServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Providers">
+      <HintPath>..\lib\net_4_5\System.Reactive.Providers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Runtime.Remoting">
+      <HintPath>..\lib\net_4_5\System.Reactive.Runtime.Remoting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Windows.Forms">
+      <HintPath>..\lib\net_4_5\System.Reactive.Windows.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Windows.Threading">
+      <HintPath>..\lib\net_4_5\System.Reactive.Windows.Threading.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Caching">
+      <HintPath>..\lib\net_4_5\System.Runtime.Caching.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.DurableInstancing">
+      <HintPath>..\lib\net_4_5\System.Runtime.DurableInstancing.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Remoting">
+      <HintPath>..\lib\net_4_5\System.Runtime.Remoting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization.Formatters.Soap">
+      <HintPath>..\lib\net_4_5\System.Runtime.Serialization.Formatters.Soap.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization">
+      <HintPath>..\lib\net_4_5\System.Runtime.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security">
+      <HintPath>..\lib\net_4_5\System.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel.Activation">
+      <HintPath>..\lib\net_4_5\System.ServiceModel.Activation.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel.Discovery">
+      <HintPath>..\lib\net_4_5\System.ServiceModel.Discovery.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel.Routing">
+      <HintPath>..\lib\net_4_5\System.ServiceModel.Routing.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel.Web">
+      <HintPath>..\lib\net_4_5\System.ServiceModel.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel">
+      <HintPath>..\lib\net_4_5\System.ServiceModel.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceProcess">
+      <HintPath>..\lib\net_4_5\System.ServiceProcess.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Dataflow">
+      <HintPath>..\lib\net_4_5\System.Threading.Tasks.Dataflow.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Transactions">
+      <HintPath>..\lib\net_4_5\System.Transactions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Abstractions">
+      <HintPath>..\lib\net_4_5\System.Web.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.ApplicationServices">
+      <HintPath>..\lib\net_4_5\System.Web.ApplicationServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.DynamicData">
+      <HintPath>..\lib\net_4_5\System.Web.DynamicData.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Extensions.Design">
+      <HintPath>..\lib\net_4_5\System.Web.Extensions.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Extensions">
+      <HintPath>..\lib\net_4_5\System.Web.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.SelfHost">
+      <HintPath>..\lib\net_4_5\System.Web.Http.SelfHost.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.WebHost">
+      <HintPath>..\lib\net_4_5\System.Web.Http.WebHost.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http">
+      <HintPath>..\lib\net_4_5\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc">
+      <HintPath>..\lib\net_4_5\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor">
+      <HintPath>..\lib\net_4_5\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Routing">
+      <HintPath>..\lib\net_4_5\System.Web.Routing.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Services">
+      <HintPath>..\lib\net_4_5\System.Web.Services.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment">
+      <HintPath>..\lib\net_4_5\System.Web.WebPages.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor">
+      <HintPath>..\lib\net_4_5\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages">
+      <HintPath>..\lib\net_4_5\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web">
+      <HintPath>..\lib\net_4_5\System.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms.DataVisualization">
+      <HintPath>..\lib\net_4_5\System.Windows.Forms.DataVisualization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms">
+      <HintPath>..\lib\net_4_5\System.Windows.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows">
+      <HintPath>..\lib\net_4_5\System.Windows.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xaml">
+      <HintPath>..\lib\net_4_5\System.Xaml.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq">
+      <HintPath>..\lib\net_4_5\System.Xml.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Serialization">
+      <HintPath>..\lib\net_4_5\System.Xml.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml">
+      <HintPath>..\lib\net_4_5\System.Xml.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>..\lib\net_4_5\System.dll</HintPath>
+    </Reference>
+    <Reference Include="SystemWebTestShim">
+      <HintPath>..\lib\net_4_5\SystemWebTestShim.dll</HintPath>
+    </Reference>
+    <Reference Include="WebMatrix.Data">
+      <HintPath>..\lib\net_4_5\WebMatrix.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsBase">
+      <HintPath>..\lib\net_4_5\WindowsBase.dll</HintPath>
+    </Reference>
+    <Reference Include="al">
+      <HintPath>..\lib\net_4_5\al.exe</HintPath>
+    </Reference>
+    <Reference Include="browsercaps-updater">
+      <HintPath>..\lib\net_4_5\browsercaps-updater.exe</HintPath>
+    </Reference>
+    <Reference Include="cccheck">
+      <HintPath>..\lib\net_4_5\cccheck.exe</HintPath>
+    </Reference>
+    <Reference Include="ccrewrite">
+      <HintPath>..\lib\net_4_5\ccrewrite.exe</HintPath>
+    </Reference>
+    <Reference Include="compiler-tester">
+      <HintPath>..\lib\net_4_5\compiler-tester.exe</HintPath>
+    </Reference>
+    <Reference Include="cscompmgd">
+      <HintPath>..\lib\net_4_5\cscompmgd.dll</HintPath>
+    </Reference>
+    <Reference Include="csharp">
+      <HintPath>..\lib\net_4_5\csharp.exe</HintPath>
+    </Reference>
+    <Reference Include="culevel">
+      <HintPath>..\lib\net_4_5\culevel.exe</HintPath>
+    </Reference>
+    <Reference Include="disco">
+      <HintPath>..\lib\net_4_5\disco.exe</HintPath>
+    </Reference>
+    <Reference Include="dtd2rng">
+      <HintPath>..\lib\net_4_5\dtd2rng.exe</HintPath>
+    </Reference>
+    <Reference Include="dtd2xsd">
+      <HintPath>..\lib\net_4_5\dtd2xsd.exe</HintPath>
+    </Reference>
+    <Reference Include="dummy-System.Web.Mvc">
+      <HintPath>..\lib\net_4_5\dummy-System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="gacutil">
+      <HintPath>..\lib\net_4_5\gacutil.exe</HintPath>
+    </Reference>
+    <Reference Include="genxs">
+      <HintPath>..\lib\net_4_5\genxs.exe</HintPath>
+    </Reference>
+    <Reference Include="ictool">
+      <HintPath>..\lib\net_4_5\ictool.exe</HintPath>
+    </Reference>
+    <Reference Include="ilasm">
+      <HintPath>..\lib\net_4_5\ilasm.exe</HintPath>
+    </Reference>
+    <Reference Include="installutil">
+      <HintPath>..\lib\net_4_5\installutil.exe</HintPath>
+    </Reference>
+    <Reference Include="installvst">
+      <HintPath>..\lib\net_4_5\installvst.exe</HintPath>
+    </Reference>
+    <Reference Include="lc">
+      <HintPath>..\lib\net_4_5\lc.exe</HintPath>
+    </Reference>
+    <Reference Include="macpack">
+      <HintPath>..\lib\net_4_5\macpack.exe</HintPath>
+    </Reference>
+    <Reference Include="mconfig">
+      <HintPath>..\lib\net_4_5\mconfig.exe</HintPath>
+    </Reference>
+    <Reference Include="mdbrebase">
+      <HintPath>..\lib\net_4_5\mdbrebase.exe</HintPath>
+    </Reference>
+    <Reference Include="mdoc">
+      <HintPath>..\lib\net_4_5\mdoc.exe</HintPath>
+    </Reference>
+    <Reference Include="mkbundle">
+      <HintPath>..\lib\net_4_5\mkbundle.exe</HintPath>
+    </Reference>
+    <Reference Include="mod">
+      <HintPath>..\lib\net_4_5\mod.exe</HintPath>
+    </Reference>
+    <Reference Include="mono-cil-strip">
+      <HintPath>..\lib\net_4_5\mono-cil-strip.exe</HintPath>
+    </Reference>
+    <Reference Include="mono-configuration-crypto">
+      <HintPath>..\lib\net_4_5\mono-configuration-crypto.exe</HintPath>
+    </Reference>
+    <Reference Include="mono-service">
+      <HintPath>..\lib\net_4_5\mono-service.exe</HintPath>
+    </Reference>
+    <Reference Include="mono-shlib-cop">
+      <HintPath>..\lib\net_4_5\mono-shlib-cop.exe</HintPath>
+    </Reference>
+    <Reference Include="mono-xmltool">
+      <HintPath>..\lib\net_4_5\mono-xmltool.exe</HintPath>
+    </Reference>
+    <Reference Include="monodoc">
+      <HintPath>..\lib\net_4_5\monodoc.dll</HintPath>
+    </Reference>
+    <Reference Include="monolinker">
+      <HintPath>..\lib\net_4_5\monolinker.exe</HintPath>
+    </Reference>
+    <Reference Include="monop">
+      <HintPath>..\lib\net_4_5\monop.exe</HintPath>
+    </Reference>
+    <Reference Include="nunit.mocks">
+      <HintPath>..\lib\net_4_5\nunit.mocks.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.util">
+      <HintPath>..\lib\net_4_5\nunit.util.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit-console">
+      <HintPath>..\lib\net_4_5\nunit-console.exe</HintPath>
+    </Reference>
+    <Reference Include="nunit-console-runner">
+      <HintPath>..\lib\net_4_5\nunit-console-runner.dll</HintPath>
+    </Reference>
+    <Reference Include="nunitreport">
+      <HintPath>..\lib\net_4_5\nunitreport.exe</HintPath>
+    </Reference>
+    <Reference Include="pdb2mdb">
+      <HintPath>..\lib\net_4_5\pdb2mdb.exe</HintPath>
+    </Reference>
+    <Reference Include="resgen">
+      <HintPath>..\lib\net_4_5\resgen.exe</HintPath>
+    </Reference>
+    <Reference Include="sgen">
+      <HintPath>..\lib\net_4_5\sgen.exe</HintPath>
+    </Reference>
+    <Reference Include="soapsuds">
+      <HintPath>..\lib\net_4_5\soapsuds.exe</HintPath>
+    </Reference>
+    <Reference Include="sqlmetal">
+      <HintPath>..\lib\net_4_5\sqlmetal.exe</HintPath>
+    </Reference>
+    <Reference Include="sqlsharp">
+      <HintPath>..\lib\net_4_5\sqlsharp.exe</HintPath>
+    </Reference>
+    <Reference Include="svcutil">
+      <HintPath>..\lib\net_4_5\svcutil.exe</HintPath>
+    </Reference>
+    <Reference Include="wsdl">
+      <HintPath>..\lib\net_4_5\wsdl.exe</HintPath>
+    </Reference>
+    <Reference Include="xbuild">
+      <HintPath>..\lib\net_4_5\xbuild.exe</HintPath>
+    </Reference>
+    <Reference Include="xsd">
+      <HintPath>..\lib\net_4_5\xsd.exe</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Test/resources/Resources.resources">
+    <EmbeddedResource Include="Test\resources\Resources.resources">
       <LogicalName>Resources.resources</LogicalName>
     </EmbeddedResource>
   </ItemGroup>

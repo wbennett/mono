@@ -499,6 +499,7 @@
     <Compile Include="Test\System\ExceptionCas.cs" />
     <Compile Include="Test\System\ExceptionTest.cs" />
     <Compile Include="Test\System\FloatingPointFormatterTest.cs" />
+    <Compile Include="Test\System\GCExtTest.cs" />
     <Compile Include="Test\System\GuidTest.cs" />
     <Compile Include="Test\System\Int16Test.cs" />
     <Compile Include="Test\System\Int32Test.cs" />

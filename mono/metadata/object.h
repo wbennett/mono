@@ -28,7 +28,7 @@ typedef struct _MonoAppContext MonoAppContext;
 
 typedef struct {
 	MonoVTable *vtable;
-    int32_t age;
+    int32_t birth_gen;
 	MonoThreadsSync *synchronisation;
 } MonoObject;
 

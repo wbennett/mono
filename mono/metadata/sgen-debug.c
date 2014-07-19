@@ -221,7 +221,7 @@ describe_pointer_sgen_log (char *ptr, gboolean need_setup)
 		goto restart;
 	}
 
-	printf ("VTable: %p\n", vtable);
+	SGEN_LOG(0,"VTable: %p\n", vtable);
 	if (vtable == NULL) {
 		SGEN_LOG(0,"VTable is invalid (empty).\n");
 		goto bridge;
@@ -242,7 +242,7 @@ describe_pointer_sgen_log (char *ptr, gboolean need_setup)
 	SGEN_LOG(0,"Size: %d\n", (int)size);
 
  bridge:
-	sgen_bridge_describe_pointer ((MonoObject*)ptr);
+	sgen_bridge_describe_pointer_sgen_log ((MonoObject*)ptr);
 }
 
 /*
@@ -395,6 +395,7 @@ setup_valid_nursery_objects (void)
 {
 	if (!valid_nursery_objects)
 		valid_nursery_objects = sgen_alloc_os_memory (DEFAULT_NURSERY_SIZE, SGEN_ALLOC_INTERNAL | SGEN_ALLOC_ACTIVATE, "debugging data");
+
 	valid_nursery_object_count = 0;
 	sgen_scan_area_with_callback (nursery_section->data, nursery_section->end_data, setup_mono_sgen_scan_area_with_callback, NULL, FALSE);
 }

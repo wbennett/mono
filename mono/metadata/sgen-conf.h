@@ -154,7 +154,7 @@ typedef guint64 mword;
  *
  * Increasing this value speeds up allocation but will cause more frequent nursery collections as less space will be used.
  * Descreasing this value will cause allocation to be slower since we'll have to cycle thru more fragments.
- * 512 annedoctally keeps wastage under control and doesn't impact allocation performance too much. 
+ * 512 annedoctally keeps wastage under control and doesn't impact allocation performance too much.
 */
 #define SGEN_MAX_NURSERY_WASTE 512
 

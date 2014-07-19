@@ -76,7 +76,7 @@ static long long stat_bytes_alloced_los = 0;
 /*
  * Allocation is done from a Thread Local Allocation Buffer (TLAB). TLABs are allocated
  * from nursery fragments.
- * tlab_next is the pointer to the space inside the TLAB where the next object will 
+ * tlab_next is the pointer to the space inside the TLAB where the next object will
  * be allocated.
  * tlab_temp_end is the pointer to the end of the temporary space reserved for
  * the allocation: it allows us to set the scan starts at reasonable intervals.
@@ -84,7 +84,7 @@ static long long stat_bytes_alloced_los = 0;
  */
 
 /*
- * FIXME: What is faster, a TLS variable pointing to a structure, or separate TLS 
+ * FIXME: What is faster, a TLS variable pointing to a structure, or separate TLS
  * variables for next+temp_end ?
  */
 #ifdef HAVE_KW_THREAD
@@ -107,6 +107,37 @@ static __thread char **tlab_next_addr;
 #define TLAB_TEMP_END	(__thread_info__->tlab_temp_end)
 #define TLAB_REAL_END	(__thread_info__->tlab_real_end)
 #endif
+
+extern int mono_gc_collection_count(int generation);
+extern void describe_pointer_sgen_log(char*,gboolean);
+/*
+ * This function will set the birthday of the object, so the precise age can be computed
+ */
+static void
+mono_gc_set_birthday(MonoObject *mo)
+{
+    if(mo)
+    {
+
+        if(sgen_ptr_in_nursery(mo))
+        {
+            mo->birth_gen =
+                mono_gc_collection_count(0);
+        }
+        else
+        {
+            mo->birth_gen =
+                mono_gc_collection_count(1);
+            SGEN_LOGT(0," object (%s) %p not in nursery (gen %d)",
+                    sgen_safe_name(mo),
+                    mo,
+                    mo->birth_gen
+                    );
+        }
+    } else {
+        SGEN_LOGT(0," object is null");
+    }
+}
 
 static void*
 alloc_degraded (MonoVTable *vtable, size_t size, gboolean for_mature)
@@ -144,6 +175,8 @@ alloc_degraded (MonoVTable *vtable, size_t size, gboolean for_mature)
 
 	return p;
 }
+
+
 
 /*
  * Provide a variant that takes just the vtable for small fixed-size objects.
@@ -213,12 +246,12 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 		if (G_LIKELY (new_next < TLAB_TEMP_END)) {
 			/* Fast path */
 
-			/* 
-			 * FIXME: We might need a memory barrier here so the change to tlab_next is 
+			/*
+			 * FIXME: We might need a memory barrier here so the change to tlab_next is
 			 * visible before the vtable store.
 			 */
 
-			SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+            SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
 			binary_protocol_alloc (p , vtable, size);
 			if (G_UNLIKELY (MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ()))
 				MONO_GC_NURSERY_OBJ_ALLOC ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
@@ -231,7 +264,7 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 		/* Slow path */
 
 		/* there are two cases: the object is too big or we run out of space in the TLAB */
-		/* we also reach here when the thread does its first allocation after a minor 
+		/* we also reach here when the thread does its first allocation after a minor
 		 * collection, since the tlab_ variables are initialized to NULL.
 		 * there can be another case (from ORP), if we cooperate with the runtime a bit:
 		 * objects that need finalizers can have the high bit set in their size
@@ -241,7 +274,7 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 		 */
 		if (TLAB_NEXT >= TLAB_REAL_END) {
 			int available_in_tlab;
-			/* 
+			/*
 			 * Run out of space in the TLAB. When this happens, some amount of space
 			 * remains in the TLAB, but not enough to satisfy the current allocation
 			 * request. Currently, we retire the TLAB in all cases, later we could
@@ -292,7 +325,7 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 							p = sgen_nursery_alloc_range (tlab_size, size, &alloc_size);
 					}
 				} while (!p);
-					
+
 				if (!p) {
 					// no space left
 					g_assert (0);
@@ -325,7 +358,7 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 	}
 
 	if (G_LIKELY (p)) {
-		SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+        SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
 		binary_protocol_alloc (p, vtable, size);
 		if (G_UNLIKELY (MONO_GC_MAJOR_OBJ_ALLOC_LARGE_ENABLED ()|| MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ())) {
 			if (size > SGEN_MAX_SMALL_OBJ_SIZE)
@@ -392,7 +425,7 @@ mono_gc_try_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 				return NULL;
 
 			if (nursery_clear_policy == CLEAR_AT_TLAB_CREATION)
-				memset (p, 0, size);			
+				memset (p, 0, size);
 		} else {
 			size_t alloc_size = 0;
 
@@ -460,6 +493,7 @@ mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 	ENTER_CRITICAL_REGION;
 	res = mono_gc_try_alloc_obj_nolock (vtable, size);
 	if (res) {
+        mono_gc_set_birthday((void*)res);
 		EXIT_CRITICAL_REGION;
 		return res;
 	}
@@ -467,6 +501,7 @@ mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 #endif
 	LOCK_GC;
 	res = mono_gc_alloc_obj_nolock (vtable, size);
+    mono_gc_set_birthday((void*)res);
 	UNLOCK_GC;
 	if (G_UNLIKELY (!res))
 		return mono_gc_out_of_memory (size);
@@ -488,6 +523,7 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 	if (arr) {
 		/*This doesn't require fencing since EXIT_CRITICAL_REGION already does it for us*/
 		arr->max_length = max_length;
+        mono_gc_set_birthday((void*)&arr->obj);
 		EXIT_CRITICAL_REGION;
 		return arr;
 	}
@@ -503,6 +539,7 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 	}
 
 	arr->max_length = max_length;
+    mono_gc_set_birthday((void*)&arr->obj);
 
 	UNLOCK_GC;
 
@@ -528,6 +565,7 @@ mono_gc_alloc_array (MonoVTable *vtable, size_t size, uintptr_t max_length, uint
 
 		bounds = (MonoArrayBounds*)((char*)arr + size - bounds_size);
 		arr->bounds = bounds;
+        mono_gc_set_birthday((void*)&arr->obj);
 		EXIT_CRITICAL_REGION;
 		return arr;
 	}
@@ -546,8 +584,10 @@ mono_gc_alloc_array (MonoVTable *vtable, size_t size, uintptr_t max_length, uint
 
 	bounds = (MonoArrayBounds*)((char*)arr + size - bounds_size);
 	arr->bounds = bounds;
+    mono_gc_set_birthday((void*)&arr->obj);
 
 	UNLOCK_GC;
+
 
 	return arr;
 }
@@ -567,6 +607,7 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 	if (str) {
 		/*This doesn't require fencing since EXIT_CRITICAL_REGION already does it for us*/
 		str->length = len;
+        mono_gc_set_birthday((void*)&(str->object));
 		EXIT_CRITICAL_REGION;
 		return str;
 	}
@@ -582,6 +623,7 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 	}
 
 	str->length = len;
+    mono_gc_set_birthday((void*)&(str->object));
 
 	UNLOCK_GC;
 
@@ -619,6 +661,7 @@ mono_gc_alloc_pinned_obj (MonoVTable *vtable, size_t size)
 		binary_protocol_alloc_pinned (p, vtable, size);
 	}
 	UNLOCK_GC;
+
 	return p;
 }
 
@@ -700,7 +743,7 @@ static MonoMethod* alloc_method_cache [ATYPE_NUM];
 
 #ifdef MANAGED_ALLOCATION
 /* FIXME: Do this in the JIT, where specialized allocation sequences can be created
- * for each class. This is currently not easy to do, as it is hard to generate basic 
+ * for each class. This is currently not easy to do, as it is hard to generate basic
  * blocks + branches, but it is easy with the linear IL codebase.
  *
  * For this to work we'd need to solve the TLAB race, first.  Now we
@@ -927,7 +970,7 @@ create_allocator (int atype)
 	mono_mb_emit_ldloc (mb, tlab_next_addr_var);
 	mono_mb_emit_byte (mb, CEE_LDIND_I);
 	mono_mb_emit_stloc (mb, p_var);
-	
+
 	/* new_next = (char*)p + size; */
 	new_next_var = mono_mb_add_local (mb, &mono_defaults.int_class->byval_arg);
 	mono_mb_emit_ldloc (mb, p_var);
@@ -1172,13 +1215,13 @@ sgen_has_managed_allocator (void)
 		if (alloc_method_cache [i])
 			return TRUE;
 	return FALSE;
-}	
+}
 
 #ifdef HEAVY_STATISTICS
 void
 sgen_alloc_init_heavy_stats (void)
 {
-	mono_counters_register ("# objects allocated", MONO_COUNTER_GC | MONO_COUNTER_LONG, &stat_objects_alloced);	
+	mono_counters_register ("# objects allocated", MONO_COUNTER_GC | MONO_COUNTER_LONG, &stat_objects_alloced);
 	mono_counters_register ("bytes allocated", MONO_COUNTER_GC | MONO_COUNTER_LONG, &stat_bytes_alloced);
 	mono_counters_register ("bytes allocated in LOS", MONO_COUNTER_GC | MONO_COUNTER_LONG, &stat_bytes_alloced_los);
 }

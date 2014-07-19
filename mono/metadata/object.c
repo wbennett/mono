@@ -41,6 +41,7 @@
 #include <mono/metadata/gc-internal.h>
 #include <mono/metadata/verify-internals.h>
 #include <mono/utils/strenc.h>
+#include <mono/utils/mono-logger-internal.h>
 #include <mono/utils/mono-counters.h>
 #include <mono/utils/mono-error-internals.h>
 #include <mono/utils/mono-memory-model.h>
@@ -4401,12 +4402,14 @@ MonoObject *
 mono_object_new (MonoDomain *domain, MonoClass *klass)
 {
 	MonoVTable *vtable;
+    MonoObject *mo;
 
 	MONO_ARCH_SAVE_REGS;
 	vtable = mono_class_vtable (domain, klass);
 	if (!vtable)
 		return NULL;
-	return mono_object_new_specific (vtable);
+	mo = mono_object_new_specific (vtable);
+    return mo;
 }
 
 /**
@@ -4482,14 +4485,26 @@ mono_object_new_alloc_specific (MonoVTable *vtable)
 	} else if (vtable->gc_descr != GC_NO_DESCRIPTOR) {
 		o = mono_object_allocate_spec (vtable->klass->instance_size, vtable);
 	} else {
-/*		printf("OBJECT: %s.%s.\n", vtable->klass->name_space, vtable->klass->name); */
 		o = mono_object_allocate (vtable->klass->instance_size, vtable);
 	}
+/*		printf("OBJECT: %s.%s.\n", vtable->klass->name_space, vtable->klass->name); */
 	if (G_UNLIKELY (vtable->klass->has_finalize))
 		mono_object_register_finalizer (o);
 
 	if (G_UNLIKELY (profile_allocs))
 		mono_profiler_allocation (o, vtable->klass);
+
+    /*
+    printf("%s:%s:%d %s (%p)\n",
+            __FILE__,
+            __FUNCTION__,
+            __LINE__,
+            !vtable ? "Unknown" :
+                !vtable->klass ? "Unknown" :
+            vtable->klass->name,
+            o
+            );
+            */
 	return o;
 }
 

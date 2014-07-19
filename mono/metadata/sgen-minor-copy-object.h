@@ -128,17 +128,6 @@ SERIAL_COPY_OBJECT_FROM_OBJ (void **obj_slot, SgenGrayQueue *queue)
 	}
 
 	SGEN_LOG (9, "Precise copy of %p from %p", obj, obj_slot);
-    /*
-     * Copy is equivalent to marking black, update count
-     */
-    if(obj)
-    {
-        MonoObject*mo = (MonoObject*)obj;
-        if(mo)
-        {
-            mo->age++;
-        }
-    }
 
 	/*
 	 * Before we can copy the object we must make sure that we are
@@ -249,6 +238,7 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 
 	vtable_word = *(mword*)obj;
 	vt = (MonoVTable*)(vtable_word & ~SGEN_VTABLE_BITS_MASK);
+    /*
     mo = (MonoObject*)(vtable_word & ~SGEN_VTABLE_BITS_MASK);
 
     SGEN_LOG(0,"(PARALLEL_COPY_OBJECT) Object %p is marked incrementing age (%d)",mo,mo ? mo->age : -1);
@@ -259,6 +249,7 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
         mo->age++;
         SGEN_LOG(0,"(PARALLEL_COPY_OBJECT) Object %p after incrementing (age %d)",mo,mo->age);
     }
+    */
 
 	/*
 	 * Before we can copy the object we must make sure that we are

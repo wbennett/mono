@@ -220,6 +220,22 @@ extern long long stat_objects_copied_major;
 		fun;	\
 } } while (0)
 
+#define SGEN_LOGT(level, format, ...) do { \
+    if(G_UNLIKELY((level) <+ SGEN_MAX_DEBUG_LEVEL && (level) <= gc_debug_level)) { \
+			mono_gc_printf (gc_debug_file,"%s:%s:%d " format,__FILE__,\
+                    __FUNCTION__,__LINE__, ##__VA_ARGS__);	\
+    }\
+} while (0)
+
+#define SGEN_COND_LOGT(level, cond, format, ...) do { \
+	if (G_UNLIKELY ((level) <= SGEN_MAX_DEBUG_LEVEL && (level) <= gc_debug_level)) {	\
+		if (cond)	\
+			mono_gc_printf (gc_debug_file,"%s:%s:%d " format,__FILE__,\
+                    __FUNCTION__,__LINE__, ##__VA_ARGS__);	\
+} } while (0)
+
+
+
 extern int gc_debug_level;
 extern FILE* gc_debug_file;
 
@@ -796,6 +812,7 @@ MonoGCBridgeObjectKind sgen_bridge_class_kind (MonoClass *class) MONO_INTERNAL;
 void sgen_mark_bridge_object (MonoObject *obj) MONO_INTERNAL;
 void sgen_bridge_register_finalized_object (MonoObject *object) MONO_INTERNAL;
 void sgen_bridge_describe_pointer (MonoObject *object) MONO_INTERNAL;
+void sgen_bridge_describe_pointer_sgen_log (MonoObject *object) MONO_INTERNAL;
 
 void sgen_mark_togglerefs (char *start, char *end, ScanCopyContext ctx) MONO_INTERNAL;
 void sgen_clear_togglerefs (char *start, char *end, ScanCopyContext ctx) MONO_INTERNAL;

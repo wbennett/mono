@@ -1149,6 +1149,12 @@ major_copy_or_mark_object (void **ptr, void *obj, SgenGrayQueue *queue)
 		HEAVY_STAT (++stat_objects_copied_major);
 
 	do_copy_object:
+        SGEN_LOG(0,"%s:%s:%d doing object copy (is in nursery? = %d)",
+                __FILE__,
+                __FUNCTION__,
+                __LINE__,
+                sgen_ptr_in_nursery(obj)
+                );
 		objsize = SGEN_ALIGN_UP (sgen_par_object_get_size (vt, (MonoObject*)obj));
 		has_references = SGEN_VTABLE_HAS_REFERENCES (vt);
 
@@ -1510,38 +1516,13 @@ sweep_block_for_size (MSBlockInfo *block, int count, int obj_size)
 {
 	int obj_index;
 
-    SGEN_LOG(0,"sweeping block for size");
-
 	for (obj_index = 0; obj_index < count; ++obj_index) {
 		int word, bit;
 		void *obj = MS_BLOCK_OBJ_FOR_SIZE (block, obj_index, obj_size);
 
 		MS_CALC_MARK_BIT (word, bit, obj);
 		if (MS_MARK_BIT (block, word, bit)) {
-            MonoObject*msBlockObjData = NULL;
-            MonoObject*msBlockObjForSize = NULL;
 			SGEN_ASSERT (9, MS_OBJ_ALLOCED (obj, block), "object %p not allocated", obj);
-            msBlockObjData = (MonoObject*)MS_BLOCK_DATA_FOR_OBJ(obj);
-            msBlockObjForSize = (MonoObject*)obj;
-            SGEN_LOG(0, "begin---------------");
-            //we survived a sweep count it
-            SGEN_LOG(0,"(sgen-marksweep:msblockobjforsize) object %p is marked (age %d) allocated? (%d)",
-                    msBlockObjForSize,
-                    msBlockObjForSize->age,
-                    MS_OBJ_ALLOCED(obj,block));
-
-            SGEN_LOG(0,"(sgen-marksweep:msblockobjdata) object %p is marked (age %d) allocated? (%d)",
-                    msBlockObjData,
-                    msBlockObjData->age,
-                    MS_OBJ_ALLOCED(obj,block));
-
-            if(msBlockObjForSize)
-            {
-                SGEN_LOG(0,"(sgen-marksweep) incrementing age pre (age %d)",msBlockObjForSize->age);
-                msBlockObjForSize->age++;
-                SGEN_LOG(0,"(sgen-marksweep) incrementing age post (age %d)",msBlockObjForSize->age);
-            }
-            SGEN_LOG(0, "end---------------");
 
 		} else {
 			/* an unmarked object */
@@ -2243,7 +2224,6 @@ skip_card (guint8 *card_data, guint8 *card_data_end)
 static void
 major_scan_card_table (gboolean mod_union, SgenGrayQueue *queue)
 {
-    SGEN_LOG(0,"%s",__FUNCTION__);
 	MSBlockInfo *block;
 	ScanObjectFunc scan_func = sgen_get_current_object_ops ()->scan_object;
 
@@ -2263,7 +2243,6 @@ major_scan_card_table (gboolean mod_union, SgenGrayQueue *queue)
 
 		block_obj_size = block->obj_size;
 		block_start = block->block;
-        SGEN_LOG(0,"%s block_start %p",__FUNCTION__,block_start);
 
 		if (block_obj_size >= CARD_SIZE_IN_BYTES) {
 			guint8 *cards;
@@ -2298,7 +2277,6 @@ major_scan_card_table (gboolean mod_union, SgenGrayQueue *queue)
 			obj = (char*)MS_BLOCK_OBJ_FAST (block_start, block_obj_size, 0);
 			end = block_start + MS_BLOCK_SIZE;
 			base = sgen_card_table_align_pointer (obj);
-            SGEN_LOG(0,"%s:%d scan %p to %p",__FUNCTION__,__LINE__,obj,end);
 
 
 			while (obj < end) {
@@ -2393,7 +2371,6 @@ major_scan_card_table (gboolean mod_union, SgenGrayQueue *queue)
 					}
 
 					HEAVY_STAT (++scanned_objects);
-                    //SGEN_LOG(0,"%s:%d scanning %p",__FUNCTION__,__LINE__,obj);
 					scan_func (obj, queue);
 				next_small:
 					obj += block_obj_size;

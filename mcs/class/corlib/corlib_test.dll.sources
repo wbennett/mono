@@ -87,6 +87,7 @@ System.Globalization/RegionInfoTest.cs
 System.Globalization/SortKeyTest.cs
 System.Globalization/StringInfoTest.cs
 System.Globalization/TextInfoTest.cs
+System/GCExtTest.cs
 System/GuidTest.cs
 System/Int16Test.cs
 System/Int32Test.cs

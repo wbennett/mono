@@ -35,7 +35,7 @@
 #include "utils/mono-time.h"
 #include "utils/mono-memory-model.h"
 
-#define CARDTABLE_STATS
+//#define CARDTABLE_STATS
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -152,6 +152,9 @@ sgen_card_table_wbarrier_value_copy (gpointer dest, gpointer src, int count, Mon
 static void
 sgen_card_table_wbarrier_object_copy (MonoObject* obj, MonoObject *src)
 {
+    SGEN_LOG(0,"%s:%s:%d src %p obj %p",__FILE__,__FUNCTION__,__LINE__,
+            src,
+            obj);
 	int size = mono_object_class (obj)->instance_size;
 
 #ifdef DISABLE_CRITICAL_REGION
@@ -389,7 +392,6 @@ clear_cards (mword start, mword size)
 static void
 clear_cards (mword start, mword size)
 {
-    SGEN_LOG(0,"%s: for %p",__FUNCTION__, sgen_card_table_get_card_address(start));
 	memset (sgen_card_table_get_card_address (start), 0, cards_in_range (start, size));
 }
 
@@ -413,7 +415,6 @@ sgen_card_table_finish_minor_collection (void)
 static void
 sgen_card_table_finish_scan_remsets (void *start_nursery, void *end_nursery, SgenGrayQueue *queue)
 {
-    SGEN_LOG(0,"%s: for %p to %p",__FUNCTION__, start_nursery, end_nursery);
 	SGEN_TV_DECLARE (atv);
 	SGEN_TV_DECLARE (btv);
 
@@ -557,9 +558,9 @@ find_next_card (guint8 *card_data, guint8 *end)
 void
 sgen_cardtable_scan_object (char *obj, mword block_obj_size, guint8 *cards, gboolean mod_union, SgenGrayQueue *queue)
 {
-    SGEN_LOG(0,"%s: for %p",__FUNCTION__,obj);
 	MonoVTable *vt = (MonoVTable*)SGEN_LOAD_VTABLE (obj);
 	MonoClass *klass = vt->klass;
+    SGEN_LOG(0,"%s:%s:%d %s",__FILE__,__FUNCTION__,__LINE__,sgen_safe_name(obj));
 
 	HEAVY_STAT (++large_objects);
 

@@ -186,15 +186,15 @@ dyn_array_int_merge (DynArray *dst, DynArray *src)
 
 	for (i = j = 0; i < dst->size || j < src->size; ) {
 		if (i < dst->size && j < src->size) {
-			int a = DYN_ARRAY_INT_REF (dst, i); 
-			int b = DYN_ARRAY_INT_REF (src, j); 
+			int a = DYN_ARRAY_INT_REF (dst, i);
+			int b = DYN_ARRAY_INT_REF (src, j);
 			if (a < b) {
 				dyn_array_int_add (&merge_array, a);
 				++i;
 			} else if (a == b) {
 				dyn_array_int_add (&merge_array, a);
 				++i;
-				++j;	
+				++j;
 			} else {
 				dyn_array_int_add (&merge_array, b);
 				++j;
@@ -836,6 +836,28 @@ sgen_bridge_describe_pointer (MonoObject *obj)
 	printf ("Bridge hash table entry %p:\n", entry);
 	printf ("  is bridge: %d\n", (int)entry->is_bridge);
 	printf ("  is visited: %d\n", (int)entry->is_visited);
+}
+
+void
+sgen_bridge_describe_pointer_sgen_log (MonoObject *obj)
+{
+	HashEntry *entry;
+	int i;
+
+	for (i = 0; i < registered_bridges.size; ++i) {
+		if (obj == DYN_ARRAY_PTR_REF (&registered_bridges, i)) {
+			SGEN_LOG (0,"Pointer is a registered bridge object.\n");
+			break;
+		}
+	}
+
+	entry = sgen_hash_table_lookup (&hash_table, obj);
+	if (!entry)
+		return;
+
+	SGEN_LOG (0,"Bridge hash table entry %p:\n", entry);
+	SGEN_LOG (0,"  is bridge: %d\n", (int)entry->is_bridge);
+	SGEN_LOG (0,"  is visited: %d\n", (int)entry->is_visited);
 }
 
 static const char *bridge_class;
