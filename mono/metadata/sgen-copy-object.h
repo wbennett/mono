@@ -34,7 +34,8 @@ set_tenure(MonoObject*src,MonoObject*mo)
 {
     if(src &&
             mo &&
-        !sgen_ptr_in_nursery(mo))
+        !sgen_ptr_in_nursery(mo) &&
+        sgen_ptr_in_nursery(src))
     {
         /*
          * subtract age from the young generation count
@@ -47,10 +48,12 @@ set_tenure(MonoObject*src,MonoObject*mo)
          */
         mo->birth_gen = mono_gc_collection_count(1) -
             (mono_gc_collection_count(0) - src->birth_gen);
-        SGEN_COND_LOGT(0,mo->birth_gen==0," (g1=%d - (g0=%d - srcbirth=%d))",
+        SGEN_COND_LOGT(0,strcmp(sgen_safe_name(mo),"BigObject")==0,
+                " (g1=%d - (g0=%d - srcbirth=%d)) = %d",
                 mono_gc_collection_count(1),
                 mono_gc_collection_count(0),
-                src->birth_gen
+                src->birth_gen,
+                mo->birth_gen
                 );
     }
 }
@@ -82,7 +85,9 @@ par_copy_object_no_checks (char *destination, MonoVTable *vt, void *obj, mword o
                 sgen_safe_name(mo),
                 destination,
                 obj);
-        set_tenure(obj,mo);
+        set_tenure(
+                (MonoObject*)obj,
+                mo);
         SGEN_COND_LOGT(0,
                 mo->birth_gen == 0,
                 " %p birth_gen is zero",

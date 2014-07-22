@@ -4494,17 +4494,6 @@ mono_object_new_alloc_specific (MonoVTable *vtable)
 	if (G_UNLIKELY (profile_allocs))
 		mono_profiler_allocation (o, vtable->klass);
 
-    /*
-    printf("%s:%s:%d %s (%p)\n",
-            __FILE__,
-            __FUNCTION__,
-            __LINE__,
-            !vtable ? "Unknown" :
-                !vtable->klass ? "Unknown" :
-            vtable->klass->name,
-            o
-            );
-            */
 	return o;
 }
 

@@ -9,6 +9,8 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace MonoTests.System
 {
@@ -119,7 +121,7 @@ public class GCExtTest
      * Emits object age including the collection counts.
      *
      */
-    private int emitObjectAge(object obj)
+    int objectAge(object obj)
     {
         var age = GC.GetObjectAge(obj);
         Console.WriteLine("object {3} age: {0} nursery_age: {1} old_gen_age: {2}",
@@ -135,7 +137,7 @@ public class GCExtTest
      *
      * Collects nursery
      */
-    private void emitAndCollectNursery()
+    void collectNursery()
     {
         Console.WriteLine("collecting nursery");
         //collect on the nursery
@@ -147,7 +149,7 @@ public class GCExtTest
      * Collects the older store
      *
      */
-    private void emitAndCollectOldGen()
+    void collectOldGen()
     {
         Console.WriteLine("collection old gen");
         GC.Collect(1);
@@ -158,9 +160,9 @@ public class GCExtTest
      * Check age assertion
      * 
      */
-    private int checkAge(object obj,Func<int,bool> pred)
+    int checkAge(object obj,Func<int,bool> pred)
     {
-        var age = emitObjectAge(obj);
+        var age = objectAge(obj);
         
         var str = string.Format("Garbage collection is not incrementing object {3} age: age {0} collectcount nurse {1} old gen {2}",
                 age,
@@ -173,58 +175,40 @@ public class GCExtTest
         return age;
     }
 
-    private void runAgeChecksNursery(object obj)
+    void runAgeChecksNursery(object obj)
     {
 
-        emitAndCollectNursery();
+        collectNursery();
 
         var prevAge = checkAge(obj,i=>i > 0);
 
-        emitAndCollectNursery();
+        collectNursery();
 
         prevAge = checkAge(obj,i=>i > prevAge);
         
-        emitAndCollectNursery();
+        collectNursery();
 
         prevAge = checkAge(obj,i=>i > prevAge);
 
     }
     
-    [
-    private void runAgeChecksOldGen(object obj)
+    void runAgeChecksOldGen(object obj)
     {
 
-        emitAndCollectOldGen();
+        collectOldGen();
 
         var prevAge = checkAge(obj,i=>i > 0);
 
-        emitAndCollectOldGen();
+        collectOldGen();
 
         prevAge = checkAge(obj,i=>i > prevAge);
         
-        emitAndCollectOldGen();
+        collectOldGen();
 
         prevAge = checkAge(obj,i=>i > prevAge);
 
     }
 
-	[Test]
-    [Ignore]
-	public void TestGetObjectAgeOnSimpleObject() {
-        Object obj = new Object();
-
-        Assert.IsTrue(GC.GetObjectAge(null) == 0, "Null does not return valid age");
-
-        runAgeChecksNursery(obj);
-	}
-	
-    [Test]
-    [Ignore]
-	public void TestGetObjectAgeOnString() {
-        string obj = "hello world from nebraska";
-
-        runAgeChecksOldGen(obj);
-	}
 
     const int LARGE_OBJ_SIZE = 8000;
     const int NURSERY_SIZE = 4194304;
@@ -239,27 +223,57 @@ public class GCExtTest
             size = s.Length;
         }
         Console.WriteLine("object size " + size);
-        return 640L;
+        return size;
     }
 
 
     bool CreateObjectsOutOfScope(){
 
-        var upperLimit = ((NURSERY_SIZE/getObjectSize(new BigObject()))*2);
+        var upperLimit = ((NURSERY_SIZE/getObjectSize(new BigObject())));
         Console.WriteLine(string.Format("creating objects out of scope with upper limit of {0}",upperLimit));
-        var list = new List<BigObject>();
+        var list = new List<Tuple<BigObject,int>>();
         for(var i = 0;i< upperLimit;i++){
             var obj = new BigObject();
-            list.Add(obj);
-            GC.GetObjectAge(obj);
+            var age = GC.GetObjectAge(obj);
+
+            Console.WriteLine("obj: "+obj.GetHashCode());
+            var tup = new Tuple<BigObject,int>(obj,age);
+            list.Add(tup);
+
         }
-        emitAndCollectNursery();
+        //the age should be greater after collecting
+        collectNursery();
+        Console.WriteLine("count: "+ list.Count());
         foreach (var i in list)
         {
-            GC.GetObjectAge(i);
+            BigObject obj = i.Item1;
+            //var age = GC.GetObjectAge(obj);
+            var age = -1;
+            Console.WriteLine(
+                    "obj: " + obj.GetHashCode()+
+                    " agep: "+i.Item2+
+                    " age: "+age + 
+                    " young: " + GC.CollectionCount(0) +  
+                    " old: " + GC.CollectionCount(1));
         }
         return true;
     }
+	
+    [Test]
+	public void TestGetObjectAgeOnSimpleObject() {
+        Object obj = new Object();
+
+        Assert.IsTrue(GC.GetObjectAge(null) == 0, "Null does not return valid age");
+
+        runAgeChecksNursery(obj);
+	}
+	
+    [Test]
+	public void TestGetObjectAgeOnString() {
+        string obj = "hello world from nebraska";
+
+        runAgeChecksOldGen(obj);
+	}
 
     [Test]
     public void TestGetObjectAgeMoveFromNursery()
@@ -269,7 +283,7 @@ public class GCExtTest
         var bigObject = new BigObject();
         BigObject nextBigObject;
 
-        emitAndCollectNursery();
+        collectNursery();
         Console.WriteLine("age: " + GC.GetObjectAge(bigObject));
 
         runAgeChecksNursery(bigObject);
@@ -279,7 +293,7 @@ public class GCExtTest
         {
             nextBigObject = new BigObject();
         }
-        emitAndCollectNursery();
+        collectNursery();
     }
 }
 }

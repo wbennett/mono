@@ -110,6 +110,13 @@ static __thread char **tlab_next_addr;
 
 extern int mono_gc_collection_count(int generation);
 extern void describe_pointer_sgen_log(char*,gboolean);
+static inline
+gboolean startsWith(const char *pre, const char *str)
+{
+    size_t lenpre = strlen(pre),
+           lenstr = strlen(str);
+    return lenstr < lenpre ? FALSE : strncmp(pre, str, lenpre) == 0;
+}
 /*
  * This function will set the birthday of the object, so the precise age can be computed
  */
@@ -251,12 +258,22 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 			 * visible before the vtable store.
 			 */
 
-            SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+            SGEN_LOG (0, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
 			binary_protocol_alloc (p , vtable, size);
+            SGEN_COND_LOGT(0,
+                    startsWith(
+                        vtable->klass->name,
+                        "BigObject"
+                        ),
+                    " allocating BigObject %p",
+                    p
+                    );
 			if (G_UNLIKELY (MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ()))
 				MONO_GC_NURSERY_OBJ_ALLOC ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
 			g_assert (*p == NULL);
 			mono_atomic_store_seq (p, vtable);
+            mono_gc_set_birthday(p);
+
 
 			return p;
 		}
@@ -358,8 +375,17 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 	}
 
 	if (G_LIKELY (p)) {
-        SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+        SGEN_LOG (0, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
 		binary_protocol_alloc (p, vtable, size);
+        SGEN_COND_LOGT(0,
+                startsWith(
+                    vtable->klass->name,
+                    "BigObject"
+                    ),
+                " allocating %s %p",
+                vtable->klass->name,
+                p
+                );
 		if (G_UNLIKELY (MONO_GC_MAJOR_OBJ_ALLOC_LARGE_ENABLED ()|| MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ())) {
 			if (size > SGEN_MAX_SMALL_OBJ_SIZE)
 				MONO_GC_MAJOR_OBJ_ALLOC_LARGE ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
@@ -367,6 +393,15 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 				MONO_GC_NURSERY_OBJ_ALLOC ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
 		}
 		mono_atomic_store_seq (p, vtable);
+        mono_gc_set_birthday(p);
+        SGEN_COND_LOGT(0,
+                strcmp(
+                    sgen_safe_name(p),
+                    "BigObject"
+                    ) == 0,
+                " allocating BigObject %p",
+                p
+                );
 	}
 
 	return p;
@@ -458,6 +493,15 @@ mono_gc_try_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 	g_assert (*p == NULL); /* FIXME disable this in non debug builds */
 
 	mono_atomic_store_seq (p, vtable);
+    mono_gc_set_birthday(p);
+    SGEN_COND_LOGT(0,
+            strcmp(
+                sgen_safe_name(p),
+                "BigObject"
+                ) == 0,
+            " allocating BigObject %p",
+            p
+            );
 
 	return p;
 }
@@ -493,7 +537,6 @@ mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 	ENTER_CRITICAL_REGION;
 	res = mono_gc_try_alloc_obj_nolock (vtable, size);
 	if (res) {
-        mono_gc_set_birthday((void*)res);
 		EXIT_CRITICAL_REGION;
 		return res;
 	}
@@ -501,10 +544,10 @@ mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 #endif
 	LOCK_GC;
 	res = mono_gc_alloc_obj_nolock (vtable, size);
-    mono_gc_set_birthday((void*)res);
 	UNLOCK_GC;
 	if (G_UNLIKELY (!res))
 		return mono_gc_out_of_memory (size);
+
 	return res;
 }
 
@@ -516,6 +559,7 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 	if (!SGEN_CAN_ALIGN_UP (size))
 		return NULL;
 
+
 #ifndef DISABLE_CRITICAL_REGION
 	TLAB_ACCESS_INIT;
 	ENTER_CRITICAL_REGION;
@@ -523,7 +567,6 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 	if (arr) {
 		/*This doesn't require fencing since EXIT_CRITICAL_REGION already does it for us*/
 		arr->max_length = max_length;
-        mono_gc_set_birthday((void*)&arr->obj);
 		EXIT_CRITICAL_REGION;
 		return arr;
 	}
@@ -539,7 +582,6 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 	}
 
 	arr->max_length = max_length;
-    mono_gc_set_birthday((void*)&arr->obj);
 
 	UNLOCK_GC;
 
@@ -565,7 +607,6 @@ mono_gc_alloc_array (MonoVTable *vtable, size_t size, uintptr_t max_length, uint
 
 		bounds = (MonoArrayBounds*)((char*)arr + size - bounds_size);
 		arr->bounds = bounds;
-        mono_gc_set_birthday((void*)&arr->obj);
 		EXIT_CRITICAL_REGION;
 		return arr;
 	}
@@ -584,9 +625,9 @@ mono_gc_alloc_array (MonoVTable *vtable, size_t size, uintptr_t max_length, uint
 
 	bounds = (MonoArrayBounds*)((char*)arr + size - bounds_size);
 	arr->bounds = bounds;
-    mono_gc_set_birthday((void*)&arr->obj);
 
 	UNLOCK_GC;
+
 
 
 	return arr;
@@ -607,7 +648,6 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 	if (str) {
 		/*This doesn't require fencing since EXIT_CRITICAL_REGION already does it for us*/
 		str->length = len;
-        mono_gc_set_birthday((void*)&(str->object));
 		EXIT_CRITICAL_REGION;
 		return str;
 	}
@@ -623,7 +663,6 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 	}
 
 	str->length = len;
-    mono_gc_set_birthday((void*)&(str->object));
 
 	UNLOCK_GC;
 
@@ -659,6 +698,14 @@ mono_gc_alloc_pinned_obj (MonoVTable *vtable, size_t size)
 		else
 			MONO_GC_MAJOR_OBJ_ALLOC_PINNED ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
 		binary_protocol_alloc_pinned (p, vtable, size);
+        SGEN_COND_LOGT(0,
+                strcmp(
+                    sgen_safe_name(p),
+                    "BigObject"
+                    ) == 0,
+                " allocating BigObject %p",
+                p
+                );
 	}
 	UNLOCK_GC;
 
@@ -681,6 +728,14 @@ mono_gc_alloc_mature (MonoVTable *vtable)
 	if (G_UNLIKELY (vtable->klass->has_finalize))
 		mono_object_register_finalizer ((MonoObject*)res);
 
+    SGEN_COND_LOGT(0,
+            strcmp(
+                sgen_safe_name(res),
+                "BigObject"
+                ) == 0,
+            " allocating BigObject %p",
+            res
+            );
 	return res;
 }
 

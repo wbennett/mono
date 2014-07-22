@@ -93,7 +93,7 @@ add_thread_to_finalize (MonoInternalThread *thread)
 }
 
 static gboolean suspend_finalizers = FALSE;
-/* 
+/*
  * actually, we might want to queue the finalize requests in a separate thread,
  * but we need to be careful about the execution domain of the thread...
  */
@@ -153,7 +153,7 @@ mono_gc_run_finalize (void *obj, void *data)
 		 * These can't be finalized during unloading/shutdown, since that would
 		 * free the native code which can still be referenced by other
 		 * finalizers.
-		 * FIXME: This is not perfect, objects dying at the same time as 
+		 * FIXME: This is not perfect, objects dying at the same time as
 		 * dynamic methods can still reference them even when !shutdown.
 		 */
 		return;
@@ -195,7 +195,7 @@ mono_gc_run_finalize (void *obj, void *data)
 	}
 #endif
 
-	/* 
+	/*
 	 * To avoid the locking plus the other overhead of mono_runtime_invoke (),
 	 * create and precompile a wrapper which calls the finalize method using
 	 * a CALLVIRT.
@@ -242,8 +242,8 @@ mono_gc_finalize_threadpool_threads (void)
 gpointer
 mono_gc_out_of_memory (size_t size)
 {
-	/* 
-	 * we could allocate at program startup some memory that we could release 
+	/*
+	 * we could allocate at program startup some memory that we could release
 	 * back to the system at this point if we're really low on memory (ie, size is
 	 * lower than the memory we set apart)
 	 */
@@ -257,7 +257,7 @@ mono_gc_out_of_memory (size_t size)
  * (because of the GetHashCode hack), but we need to pass the real address to register_finalizer.
  * This also means that in the callback we need to adjust the pointer to get back the real
  * MonoObject*.
- * We also need to be consistent in the use of the GC_debug* variants of malloc and register_finalizer, 
+ * We also need to be consistent in the use of the GC_debug* variants of malloc and register_finalizer,
  * since that, too, can cause the underlying pointer to be offset.
  */
 static void
@@ -305,7 +305,7 @@ object_register_finalizer (MonoObject *obj, void (*callback)(void *, void*))
  *
  * Records that object @obj has a finalizer, this will call the
  * Finalize method when the garbage collector disposes the object.
- * 
+ *
  */
 void
 mono_object_register_finalizer (MonoObject *obj)
@@ -326,7 +326,7 @@ mono_object_register_finalizer (MonoObject *obj)
  */
 
 gboolean
-mono_domain_finalize (MonoDomain *domain, guint32 timeout) 
+mono_domain_finalize (MonoDomain *domain, guint32 timeout)
 {
 	DomainFinalizationReq *req;
 	guint32 res;
@@ -341,11 +341,11 @@ mono_domain_finalize (MonoDomain *domain, guint32 timeout)
 		/* We are called from inside a finalizer, not much we can do here */
 		return FALSE;
 
-	/* 
+	/*
 	 * No need to create another thread 'cause the finalizer thread
 	 * is still working and will take care of running the finalizers
-	 */ 
-	
+	 */
+
 #ifndef HAVE_NULL_GC
 	if (gc_disabled)
 		return TRUE;
@@ -363,7 +363,7 @@ mono_domain_finalize (MonoDomain *domain, guint32 timeout)
 
 	if (domain == mono_get_root_domain ())
 		finalizing_root_domain = TRUE;
-	
+
 	mono_finalizer_lock ();
 
 	domains_to_finalize = g_slist_append (domains_to_finalize, req);
@@ -595,7 +595,7 @@ typedef struct {
 	guint16  *domain_ids;
 } HandleData;
 
-/* weak and weak-track arrays will be allocated in malloc memory 
+/* weak and weak-track arrays will be allocated in malloc memory
  */
 static HandleData gc_handles [] = {
 	{NULL, NULL, 0, HANDLE_WEAK, 0},
@@ -737,19 +737,20 @@ alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
  * This returns a handle that wraps the object, this is used to keep a
  * reference to a managed object from the unmanaged world and preventing the
  * object from being disposed.
- * 
+ *
  * If @pinned is false the address of the object can not be obtained, if it is
  * true the address of the object can be obtained.  This will also pin the
  * object so it will not be possible by a moving garbage collector to move the
- * object. 
- * 
+ * object.
+ *
  * Returns: a handle that can be used to access the object from
  * unmanaged code.
  */
 guint32
 mono_gchandle_new (MonoObject *obj, gboolean pinned)
 {
-	return alloc_handle (&gc_handles [pinned? HANDLE_PINNED: HANDLE_NORMAL], obj, FALSE);
+    guint32 rval = alloc_handle (&gc_handles [pinned? HANDLE_PINNED: HANDLE_NORMAL], obj, FALSE);
+    return rval;
 }
 
 /**
@@ -762,12 +763,12 @@ mono_gchandle_new (MonoObject *obj, gboolean pinned)
  * Unlike the mono_gchandle_new the object can be reclaimed by the
  * garbage collector.  In this case the value of the GCHandle will be
  * set to zero.
- * 
+ *
  * If @pinned is false the address of the object can not be obtained, if it is
  * true the address of the object can be obtained.  This will also pin the
  * object so it will not be possible by a moving garbage collector to move the
- * object. 
- * 
+ * object.
+ *
  * Returns: a handle that can be used to access the object from
  * unmanaged code.
  */
@@ -792,7 +793,7 @@ mono_gchandle_get_type (guint32 gchandle)
  * @gchandle: a GCHandle's handle.
  *
  * The handle was previously created by calling mono_gchandle_new or
- * mono_gchandle_new_weakref. 
+ * mono_gchandle_new_weakref.
  *
  * Returns a pointer to the MonoObject represented by the handle or
  * NULL for a collected object if using a weakref handle.
@@ -892,7 +893,7 @@ mono_gchandle_is_in_domain (guint32 gchandle, MonoDomain *domain)
  *
  * Frees the @gchandle handle.  If there are no outstanding
  * references, the garbage collector can reclaim the memory of the
- * object wrapped. 
+ * object wrapped.
  */
 void
 mono_gchandle_free (guint32 gchandle)
@@ -1022,7 +1023,7 @@ finalize_domain_objects (DomainFinalizationReq *req)
 	while (g_hash_table_size (domain->finalizable_objects_hash) > 0) {
 		int i;
 		GPtrArray *objs;
-		/* 
+		/*
 		 * Since the domain is unloading, nobody is allowed to put
 		 * new entries into the hash table. But finalize_object might
 		 * remove entries from the hash table, so we make a copy.
@@ -1050,7 +1051,7 @@ finalize_domain_objects (DomainFinalizationReq *req)
 
 	/* cleanup the reference queue */
 	reference_queue_clear_for_domain (domain);
-	
+
 	/* printf ("DONE.\n"); */
 	SetEvent (req->done_event);
 
@@ -1094,7 +1095,7 @@ finalizer_thread (gpointer unused)
 			} else {
 				mono_finalizer_unlock ();
 			}
-		}				
+		}
 
 		/* If finished == TRUE, mono_gc_cleanup has been called (from mono_runtime_cleanup),
 		 * before the domain is unloaded.
@@ -1146,7 +1147,7 @@ mono_gc_init (void)
 		gc_disabled = TRUE;
 		return;
 	}
-	
+
 	finalizer_event = CreateEvent (NULL, FALSE, FALSE, NULL);
 	pending_done_event = CreateEvent (NULL, TRUE, FALSE, NULL);
 	shutdown_event = CreateEvent (NULL, TRUE, FALSE, NULL);
@@ -1189,15 +1190,15 @@ mono_gc_cleanup (void)
 				ret = WaitForSingleObjectEx (gc_thread->handle, 100, TRUE);
 
 				if (ret == WAIT_TIMEOUT) {
-					/* 
-					 * The finalizer thread refused to die. There is not much we 
-					 * can do here, since the runtime is shutting down so the 
+					/*
+					 * The finalizer thread refused to die. There is not much we
+					 * can do here, since the runtime is shutting down so the
 					 * state the finalizer thread depends on will vanish.
 					 */
 					g_warning ("Shutting down finalizer thread timed out.");
 				} else {
 					/*
-					 * FIXME: On unix, when the above wait returns, the thread 
+					 * FIXME: On unix, when the above wait returns, the thread
 					 * might still be running io-layer code, or pthreads code.
 					 */
 					Sleep (100);
@@ -1258,7 +1259,7 @@ mono_gc_is_finalizer_internal_thread (MonoInternalThread *thread)
  * In Mono objects are finalized asynchronously on a separate thread.
  * This routine tests whether the @thread argument represents the
  * finalization thread.
- * 
+ *
  * Returns true if @thread is the finalization thread.
  */
 gboolean

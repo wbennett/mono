@@ -4686,7 +4686,10 @@ mono_gc_get_object_age  (MonoObject *object)
 {
     if(object)
     {
-        SGEN_LOG(0,"%s:%d Object %p (%s) gen is (%d) born on = %d (g0=%d g1=%d)",
+        int age = ptr_in_nursery(object) ?
+            mono_gc_collection_count(0) - object->birth_gen :
+            mono_gc_collection_count(1) - object->birth_gen;
+        SGEN_LOG(0,"%s:%d Object %p (%s) gen is (%d) born on = %d (g0=%d g1=%d) has age=%d ",
                 __FUNCTION__,
                 __LINE__,
                 object,
@@ -4694,12 +4697,11 @@ mono_gc_get_object_age  (MonoObject *object)
                 mono_gc_get_generation(object),
                 object->birth_gen,
                 mono_gc_collection_count(0),
-                mono_gc_collection_count(1)
+                mono_gc_collection_count(1),
+                age
                 );
 
-        return (ptr_in_nursery(object) ?
-            mono_gc_collection_count(0):
-            mono_gc_collection_count(1)) - object->birth_gen ;
+        return age;
     }
 
     return 0;
