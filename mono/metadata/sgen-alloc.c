@@ -639,6 +639,7 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 		/*This doesn't require fencing since EXIT_CRITICAL_REGION already does it for us*/
 		str->length = len;
 		EXIT_CRITICAL_REGION;
+        mono_gc_set_birthday((MonoObject*)str->obj);
 		return str;
 	}
 	EXIT_CRITICAL_REGION;
@@ -655,6 +656,7 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 	str->length = len;
 
 	UNLOCK_GC;
+    mono_gc_set_birthday((MonoObject*)str->obj);
 
 	return str;
 }
