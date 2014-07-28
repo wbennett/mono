@@ -3,7 +3,7 @@
  *
  * Copyright 2009-2010 Novell, Inc.
  *           2011 Rodrigo Kumpera
- * 
+ *
  * Copyright 2011 Xamarin Inc  (http://www.xamarin.com)
  * Copyright (C) 2012 Xamarin Inc
  *
@@ -33,7 +33,7 @@
  * We should start assigning threads very small fragments: if there are many
  * threads the nursery will be full of reserved space that the threads may not
  * use at all, slowing down allocation speed.
- * Thread local allocation is done from areas of memory Hotspot calls Thread Local 
+ * Thread local allocation is done from areas of memory Hotspot calls Thread Local
  * Allocation Buffers (TLABs).
  */
 #include "config.h"
@@ -87,6 +87,10 @@
 
 /* Enable it so nursery allocation diagnostic data is collected */
 //#define NALLOC_DEBUG 1
+//
+#define SGEN_FRAGMENT_BIRTH_GEN() \
+    ((mono_gc_collection_count(0)+1)*-1)
+
 
 /* The mutator allocs from here. */
 SgenFragmentAllocator mutator_allocator;
@@ -278,6 +282,52 @@ sgen_fragment_allocator_alloc (void)
 	return frag;
 }
 
+int
+sgen_fragment_get_birth_gen (char *obj)
+{
+    SgenFragmentAllocator *allocator = &mutator_allocator;
+    SgenFragment *frag = unmask(allocator->region_head);
+    SGEN_LOGT(0,
+            "searching fragments for %p ",
+            obj
+            );
+
+    if(!frag)
+        return 0;
+
+    SGEN_LOGT(0,"head %p",
+            frag
+            );
+
+    for(;
+            unmask(frag->next_in_order);
+            frag = unmask(frag->next_in_order))
+    {
+        SGEN_LOGT(0,"fragment: %p %d fragment_start %p fragment_end: %p next_in_order: %p %d",
+                unmask(frag),
+                frag->birth_gen,
+                frag->fragment_start,
+                frag->fragment_end,
+                unmask(frag->next_in_order),
+                frag->next_in_order->birth_gen
+                );
+
+        if(frag->fragment_end > obj)
+        {
+            SGEN_LOGT(0,"breaking");
+            break;
+        }
+    }
+
+    if(frag)
+    {
+        SGEN_LOGT(0,"Found fragment: %d",frag->birth_gen);
+        return frag->birth_gen;
+    }
+
+    return 0;
+}
+
 void
 sgen_fragment_allocator_add (SgenFragmentAllocator *allocator, char *start, char *end)
 {
@@ -291,6 +341,7 @@ sgen_fragment_allocator_add (SgenFragmentAllocator *allocator, char *start, char
 
 	allocator->region_head = allocator->alloc_head = fragment;
 	g_assert (fragment->fragment_end > fragment->fragment_start);
+    SGEN_LOGT(9,"adding fragment allocator for %p %p",start,end);
 }
 
 void
@@ -372,6 +423,11 @@ claim_remaining_size (SgenFragment *frag, char *alloc_end)
 static void*
 par_alloc_from_fragment (SgenFragmentAllocator *allocator, SgenFragment *frag, size_t size)
 {
+    SGEN_LOGT(0,"size:%d %p %p %p",
+            size,
+            frag->fragment_start,
+            frag->fragment_next,
+            frag->fragment_end);
 	char *p = frag->fragment_next;
 	char *end = p + size;
 
@@ -386,7 +442,7 @@ par_alloc_from_fragment (SgenFragmentAllocator *allocator, SgenFragment *frag, s
 
 	if (frag->fragment_end - end < SGEN_MAX_NURSERY_WASTE) {
 		SgenFragment *next, **prev_ptr;
-		
+
 		/*
 		 * Before we clean the remaining nursery, we must claim the remaining space
 		 * as it could end up been used by the range allocator since it can end up
@@ -438,6 +494,7 @@ par_alloc_from_fragment (SgenFragmentAllocator *allocator, SgenFragment *frag, s
 static void*
 serial_alloc_from_fragment (SgenFragment **previous, SgenFragment *frag, size_t size)
 {
+    SGEN_LOGT(0,"size:%d",size);
 	char *p = frag->fragment_next;
 	char *end = p + size;
 
@@ -448,7 +505,7 @@ serial_alloc_from_fragment (SgenFragment **previous, SgenFragment *frag, size_t 
 
 	if (frag->fragment_end - end < SGEN_MAX_NURSERY_WASTE) {
 		*previous = frag->next;
-		
+
 		/* Clear the remaining space, pinning depends on this. FIXME move this to use phony arrays */
 		memset (end, 0, frag->fragment_end - end);
 
@@ -480,6 +537,7 @@ restart:
 #ifdef NALLOC_DEBUG
 			add_alloc_record (p, size, FIXED_ALLOC);
 #endif
+            SGEN_LOGT(0,"size:%d %p",size,p);
 			return p;
 		}
 	}
@@ -567,6 +625,7 @@ sgen_fragment_allocator_serial_range_alloc (SgenFragmentAllocator *allocator, si
 void*
 sgen_fragment_allocator_par_range_alloc (SgenFragmentAllocator *allocator, size_t desired_size, size_t minimum_size, size_t *out_alloc_size)
 {
+    SGEN_LOGT(0,"size:%d",desired_size);
 	SgenFragment *frag, *min_frag;
 	size_t current_minimum;
 
@@ -588,6 +647,7 @@ restart:
 			*out_alloc_size = desired_size;
 
 			p = par_alloc_from_fragment (allocator, frag, desired_size);
+
 			if (!p) {
 				HEAVY_STAT (InterlockedIncrement (&stat_alloc_range_retries));
 				goto restart;
@@ -595,6 +655,8 @@ restart:
 #ifdef NALLOC_DEBUG
 			add_alloc_record (p, desired_size, RANGE_ALLOC);
 #endif
+            if(frag)
+                frag->birth_gen = SGEN_FRAGMENT_BIRTH_GEN();
 			return p;
 		}
 		if (current_minimum <= frag_size) {
@@ -627,6 +689,9 @@ restart:
 #ifdef NALLOC_DEBUG
 		add_alloc_record (p, frag_size, RANGE_ALLOC);
 #endif
+        if(frag)
+            frag->birth_gen = SGEN_FRAGMENT_BIRTH_GEN();
+
 		return p;
 	}
 
@@ -644,7 +709,7 @@ sgen_clear_allocator_fragments (SgenFragmentAllocator *allocator)
 #ifdef NALLOC_DEBUG
 		add_alloc_record (frag->fragment_next, frag->fragment_end - frag->fragment_next, CLEAR_NURSERY_FRAGS);
 #endif
-	}	
+	}
 }
 
 /* Clear all remaining nursery fragments */
@@ -802,7 +867,7 @@ sgen_build_nursery_fragments (GCMemSection *nursery_section, void **start, int n
 		g_assert (frag_size >= 0);
 		g_assert (size > 0);
 		if (frag_size && size)
-			add_nursery_frag (&mutator_allocator, frag_size, frag_start, frag_end);	
+			add_nursery_frag (&mutator_allocator, frag_size, frag_start, frag_end);
 
 		frag_size = size;
 #ifdef NALLOC_DEBUG

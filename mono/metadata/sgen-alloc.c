@@ -73,6 +73,7 @@ static long long stat_bytes_alloced_los = 0;
 
 #endif
 
+
 /*
  * Allocation is done from a Thread Local Allocation Buffer (TLAB). TLABs are allocated
  * from nursery fragments.
@@ -110,6 +111,11 @@ static __thread char **tlab_next_addr;
 
 extern int mono_gc_collection_count(int generation);
 extern void describe_pointer_sgen_log(char*,gboolean);
+extern void print_trace(void);
+
+//this will pull in the scan logic for fast path
+#include "metadata/sgen-alloc-scan.h"
+
 static inline
 gboolean startsWith(const char *pre, const char *str)
 {
@@ -125,21 +131,16 @@ mono_gc_set_birthday(MonoObject *mo)
 {
     if(mo)
     {
-
         if(sgen_ptr_in_nursery(mo))
         {
-            mo->birth_gen =
-                mono_gc_collection_count(0);
+            mo->tenure_gen =
+                (mono_gc_collection_count(0)+1)*-1;
         }
-        else
+        //keep track of tenure if object is allocated in major
+        else if(!sgen_ptr_in_nursery(mo))
         {
-            mo->birth_gen =
+            mo->tenure_gen=
                 mono_gc_collection_count(1);
-            SGEN_LOGT(0," object (%s) %p not in nursery (gen %d)",
-                    sgen_safe_name(mo),
-                    mo,
-                    mo->birth_gen
-                    );
         }
     } else {
         SGEN_LOGT(0," object is null");
@@ -258,23 +259,29 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 			 * visible before the vtable store.
 			 */
 
-            SGEN_LOG (0, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+            SGEN_LOG (6,
+                    "Allocated object %p, vtable: %p (%s), size: %zd",  p, vtable, vtable->klass->name, size
+                    );
 			binary_protocol_alloc (p , vtable, size);
             SGEN_COND_LOGT(0,
                     startsWith(
                         vtable->klass->name,
                         "BigObject"
+                        ) ||
+                    startsWith(
+                        vtable->klass->name,
+                        "Object"
                         ),
-                    " allocating BigObject %p",
-                    p
+                    "Allocated object %p, vtable: %p (%s), size: %zd",  p, vtable, vtable->klass->name, size
                     );
 			if (G_UNLIKELY (MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ()))
 				MONO_GC_NURSERY_OBJ_ALLOC ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
 			g_assert (*p == NULL);
 			mono_atomic_store_seq (p, vtable);
-            mono_gc_set_birthday(p);
-
-
+            mono_gc_set_birthday((MonoObject*)p);
+            //we need to perform a fast path scan after the write
+            //barrier so it updates any objects allocated
+            SERIAL_SCAN_OBJECT_ALLOC(p);
 			return p;
 		}
 
@@ -303,7 +310,12 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 			 * for a while, to decrease the number of useless nursery collections.
 			 */
 			if (degraded_mode && degraded_mode < DEFAULT_NURSERY_SIZE)
-				return alloc_degraded (vtable, size, FALSE);
+            {
+                void *dp;
+				dp = alloc_degraded (vtable, size, FALSE);
+                mono_gc_set_birthday((MonoObject*)dp);
+                return dp;
+            }
 
 			available_in_tlab = TLAB_REAL_END - TLAB_NEXT;
 			if (size > tlab_size || available_in_tlab > SGEN_MAX_NURSERY_WASTE) {
@@ -313,7 +325,12 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 					if (!p) {
 						sgen_ensure_free_space (size);
 						if (degraded_mode)
-							return alloc_degraded (vtable, size, FALSE);
+                        {
+                            void *dp;
+                            dp = alloc_degraded (vtable, size, FALSE);
+                            mono_gc_set_birthday((MonoObject*)dp);
+                            return dp;
+                        }
 						else
 							p = sgen_nursery_alloc (size);
 					}
@@ -337,7 +354,12 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 					if (!p) {
 						sgen_ensure_free_space (tlab_size);
 						if (degraded_mode)
-							return alloc_degraded (vtable, size, FALSE);
+                        {
+                            void *dp;
+                            dp = alloc_degraded (vtable, size, FALSE);
+                            mono_gc_set_birthday((MonoObject*)dp);
+                            return dp;
+                        }
 						else
 							p = sgen_nursery_alloc_range (tlab_size, size, &alloc_size);
 					}
@@ -375,17 +397,8 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 	}
 
 	if (G_LIKELY (p)) {
-        SGEN_LOG (0, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+        SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
 		binary_protocol_alloc (p, vtable, size);
-        SGEN_COND_LOGT(0,
-                startsWith(
-                    vtable->klass->name,
-                    "BigObject"
-                    ),
-                " allocating %s %p",
-                vtable->klass->name,
-                p
-                );
 		if (G_UNLIKELY (MONO_GC_MAJOR_OBJ_ALLOC_LARGE_ENABLED ()|| MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ())) {
 			if (size > SGEN_MAX_SMALL_OBJ_SIZE)
 				MONO_GC_MAJOR_OBJ_ALLOC_LARGE ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
@@ -393,19 +406,12 @@ mono_gc_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 				MONO_GC_NURSERY_OBJ_ALLOC ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
 		}
 		mono_atomic_store_seq (p, vtable);
-        mono_gc_set_birthday(p);
-        SGEN_COND_LOGT(0,
-                strcmp(
-                    sgen_safe_name(p),
-                    "BigObject"
-                    ) == 0,
-                " allocating BigObject %p",
-                p
-                );
 	}
+    mono_gc_set_birthday((MonoObject*)p);
 
 	return p;
 }
+
 
 static void*
 mono_gc_try_alloc_obj_nolock (MonoVTable *vtable, size_t size)
@@ -480,27 +486,37 @@ mono_gc_try_alloc_obj_nolock (MonoVTable *vtable, size_t size)
 				memset (new_next, 0, alloc_size);
 
 			MONO_GC_NURSERY_TLAB_ALLOC ((mword)new_next, alloc_size);
+
 		}
 	}
 
 	HEAVY_STAT (++stat_objects_alloced);
 	HEAVY_STAT (stat_bytes_alloced += size);
 
-	SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd", p, vtable, vtable->klass->name, size);
+	SGEN_LOG (6, "Allocated object %p, vtable: %p (%s), size: %zd",
+            p,
+            vtable,
+            vtable->klass->name,
+            size);
 	binary_protocol_alloc (p, vtable, size);
 	if (G_UNLIKELY (MONO_GC_NURSERY_OBJ_ALLOC_ENABLED ()))
-		MONO_GC_NURSERY_OBJ_ALLOC ((mword)p, size, vtable->klass->name_space, vtable->klass->name);
+		MONO_GC_NURSERY_OBJ_ALLOC ((mword)p,
+                size,
+                vtable->klass->name_space,
+                vtable->klass->name);
 	g_assert (*p == NULL); /* FIXME disable this in non debug builds */
 
 	mono_atomic_store_seq (p, vtable);
-    mono_gc_set_birthday(p);
+    mono_gc_set_birthday((MonoObject*)p);
     SGEN_COND_LOGT(0,
             strcmp(
                 sgen_safe_name(p),
                 "BigObject"
                 ) == 0,
-            " allocating BigObject %p",
-            p
+            " allocating %s %p size %zd",
+            vtable->klass->name,
+            p,
+            size
             );
 
 	return p;
@@ -510,6 +526,7 @@ void*
 mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 {
 	void *res;
+
 
 	if (!SGEN_CAN_ALIGN_UP (size))
 		return NULL;
@@ -1142,6 +1159,8 @@ MonoMethod*
 mono_gc_get_managed_allocator (MonoClass *klass, gboolean for_box)
 {
 #ifdef MANAGED_ALLOCATION
+
+    SGEN_LOGT(0,"getting managed allocator for %s %p",klass->name);
 
 #ifdef HAVE_KW_THREAD
 	int tlab_next_offset = -1;

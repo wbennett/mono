@@ -560,7 +560,7 @@ sgen_cardtable_scan_object (char *obj, mword block_obj_size, guint8 *cards, gboo
 {
 	MonoVTable *vt = (MonoVTable*)SGEN_LOAD_VTABLE (obj);
 	MonoClass *klass = vt->klass;
-    SGEN_LOG(0,"%s:%s:%d %s",__FILE__,__FUNCTION__,__LINE__,sgen_safe_name(obj));
+    SGEN_LOG(6,"%s:%s:%d %s",__FILE__,__FUNCTION__,__LINE__,sgen_safe_name(obj));
 
 	HEAVY_STAT (++large_objects);
 
@@ -594,9 +594,13 @@ sgen_cardtable_scan_object (char *obj, mword block_obj_size, guint8 *cards, gboo
 #endif
 
 		if (cards)
+        {
 			card_data = cards;
+        }
 		else
+        {
 			card_data = sgen_card_table_get_card_scan_address ((mword)obj);
+        }
 
 		card_base = card_data;
 		card_count = cards_in_range ((mword)obj, obj_size);
@@ -624,7 +628,9 @@ LOOP_HEAD:
 			HEAVY_STAT (++los_marked_cards);
 
 			if (!cards)
+            {
 				sgen_card_table_prepare_card_for_scanning (card_data);
+            }
 
 			card_end = MIN (card_end, obj_end);
 

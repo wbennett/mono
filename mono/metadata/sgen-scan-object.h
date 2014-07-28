@@ -50,10 +50,12 @@
 	desc = vt->desc;
 
 #if defined(SGEN_BINARY_PROTOCOL) && defined(SCAN_OBJECT_PROTOCOL)
+#warning "no vtable scan binary protocol"
 	binary_protocol_scan_begin (start, vt, sgen_safe_object_get_size ((MonoObject*)start));
 #endif
 #else
 #if defined(SGEN_BINARY_PROTOCOL) && defined(SCAN_OBJECT_PROTOCOL)
+#warning "vtable scan binary protocol"
 	binary_protocol_scan_vtype_begin (start + sizeof (MonoObject), size);
 #endif
 #endif

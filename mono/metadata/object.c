@@ -4480,6 +4480,7 @@ mono_object_new_alloc_specific (MonoVTable *vtable)
 {
 	MonoObject *o;
 
+
 	if (!vtable->klass->has_references) {
 		o = mono_object_new_ptrfree (vtable);
 	} else if (vtable->gc_descr != GC_NO_DESCRIPTOR) {
@@ -4509,6 +4510,7 @@ static MonoObject*
 mono_object_new_ptrfree (MonoVTable *vtable)
 {
 	MonoObject *obj;
+
 	ALLOC_PTRFREE (obj, vtable, vtable->klass->instance_size);
 #if NEED_TO_ZERO_PTRFREE
 	/* an inline memset is much faster for the common vcase of small objects
@@ -4634,6 +4636,7 @@ mono_object_clone (MonoObject *obj)
 
 	if (obj->vtable->klass->has_finalize)
 		mono_object_register_finalizer (o);
+
 	return o;
 }
 

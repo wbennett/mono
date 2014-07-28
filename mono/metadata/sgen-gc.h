@@ -531,6 +531,7 @@ struct _SgenFragment {
 	char *fragment_next; /* the current soft limit for allocation */
 	char *fragment_end;
 	SgenFragment *next_in_order; /* We use a different entry for all active fragments so we can avoid SMR. */
+    int birth_gen;
 };
 
 typedef struct {
@@ -539,6 +540,7 @@ typedef struct {
 } SgenFragmentAllocator;
 
 void sgen_fragment_allocator_add (SgenFragmentAllocator *allocator, char *start, char *end) MONO_INTERNAL;
+int sgen_fragment_get_birth_gen (char *obj) MONO_INTERNAL;
 void sgen_fragment_allocator_release (SgenFragmentAllocator *allocator) MONO_INTERNAL;
 void* sgen_fragment_allocator_serial_alloc (SgenFragmentAllocator *allocator, size_t size) MONO_INTERNAL;
 void* sgen_fragment_allocator_par_alloc (SgenFragmentAllocator *allocator, size_t size) MONO_INTERNAL;

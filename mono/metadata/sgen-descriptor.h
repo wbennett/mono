@@ -106,7 +106,7 @@ enum {
 enum {
 	ROOT_DESC_CONSERVATIVE, /* 0, so matches NULL value */
 	ROOT_DESC_BITMAP,
-	ROOT_DESC_RUN_LEN, 
+	ROOT_DESC_RUN_LEN,
 	ROOT_DESC_COMPLEX,
 	ROOT_DESC_USER,
 	ROOT_DESC_TYPE_MASK = 0x7,
@@ -238,7 +238,7 @@ sgen_gc_descr_has_references (mword desc)
 		int bwords = (*bitmap_data) - 1;	\
 		void **start_run = _objptr;	\
 		bitmap_data++;	\
-		if (0) {	\
+		if (1) {	\
 			MonoObject *myobj = (MonoObject*)obj;	\
 			g_print ("found %d at %p (0x%zx): %s.%s\n", bwords, (obj), (desc), myobj->vtable->klass->name_space, myobj->vtable->klass->name); \
 		}	\
@@ -246,6 +246,7 @@ sgen_gc_descr_has_references (mword desc)
 			gsize _bmap = *bitmap_data++;	\
 			_objptr = start_run;	\
 			/*g_print ("bitmap: 0x%x/%d at %p\n", _bmap, bwords, _objptr);*/	\
+			g_print ("bitmap: 0x%x/%d at %p\n", _bmap, bwords, _objptr);\
 			while (_bmap) {	\
 				if ((_bmap & 1)) {	\
 					HANDLE_PTR (_objptr, (obj));	\
@@ -265,7 +266,7 @@ sgen_gc_descr_has_references (mword desc)
 		int el_size = mono_array_element_size (vt->klass);	\
 		char *e_start = (char*)(obj) +  G_STRUCT_OFFSET (MonoArray, vector);	\
 		char *e_end = e_start + el_size * mono_array_length_fast ((MonoArray*)(obj));	\
-		if (0)							\
+		if (1)							\
                         g_print ("found %d at %p (0x%zx): %s.%s\n", mbwords, (obj), (vt)->desc, vt->klass->name_space, vt->klass->name); \
 		while (e_start < e_end) {	\
 			void **_objptr = (void**)e_start;	\

@@ -227,6 +227,8 @@
 #include <mono/utils/mono-logger-internal.h>
 #include <mono/utils/memcheck.h>
 
+#include <execinfo.h>
+
 #if defined(__MACH__)
 #include "utils/mach-support.h"
 #endif
@@ -393,6 +395,23 @@ const char*
 sgen_safe_name (void* obj)
 {
 	return safe_name (obj);
+}
+
+void
+print_trace(void)
+{
+    void *array[20];
+    size_t size;
+    char **strings;
+    size_t i;
+
+    size = backtrace(array,20);
+    strings = backtrace_symbols(array,size);
+    SGEN_LOGT(0,"Printing stack trace");
+    for(i=0;i<size;i++)
+        SGEN_LOG(0,"%s",strings[i]);
+
+    free(strings);
 }
 
 /*
@@ -4624,6 +4643,12 @@ mono_gc_max_generation (void)
 int
 mono_gc_collection_count (int generation)
 {
+    SGEN_COND_LOGT(0,
+            generation == 5,
+            "getting collection count %d",generation);
+    if(generation == 5)
+        print_trace();
+
 	if (generation == 0)
 		return stat_minor_gcs;
 	return stat_major_gcs;
@@ -4686,16 +4711,34 @@ mono_gc_get_object_age  (MonoObject *object)
 {
     if(object)
     {
-        int age = ptr_in_nursery(object) ?
-            mono_gc_collection_count(0) - object->birth_gen :
-            mono_gc_collection_count(1) - object->birth_gen;
-        SGEN_LOG(0,"%s:%d Object %p (%s) gen is (%d) born on = %d (g0=%d g1=%d) has age=%d ",
-                __FUNCTION__,
-                __LINE__,
+        int age = 0;
+        //handle we are in the nursery and have been set
+        if(ptr_in_nursery(object) &&
+                mono_gc_collection_count(0) > 0)
+        {
+            if(object->tenure_gen == 0)
+            {
+                object->tenure_gen =
+                        sgen_fragment_get_birth_gen((char*)object);
+            }
+            //the tenure was picked up by the sweep
+            age = (mono_gc_collection_count(0) + (object->tenure_gen+1));
+        }
+        //handle when we get tenured
+        else if(!ptr_in_nursery(object))
+        {
+            /*
+             * The tenure age will be set after being
+             * evacuated. It will also compute the offset required.
+            */
+            age = abs(mono_gc_collection_count(1) - object->tenure_gen);
+        }
+        //are we in the nursery
+        SGEN_LOGT(0,"Object %p (%s) gen is (%d) tenured on = %d (g0=%d g1=%d) has age=%d ",
                 object,
                 safe_name(object),
                 mono_gc_get_generation(object),
-                object->birth_gen,
+                object->tenure_gen,
                 mono_gc_collection_count(0),
                 mono_gc_collection_count(1),
                 age
@@ -4704,7 +4747,7 @@ mono_gc_get_object_age  (MonoObject *object)
         return age;
     }
 
-    return 0;
+    return -1;
 }
 
 void
