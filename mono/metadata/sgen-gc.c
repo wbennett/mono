@@ -4520,8 +4520,8 @@ void
 mono_gc_wbarrier_object_copy (MonoObject* obj, MonoObject *src)
 {
 	int size;
-    SGEN_LOG(0,"%s:%s:%d moving (%s) %p to %p",
-            __FILE__,__FUNCTION__,__LINE__,safe_name(src),src,obj);
+    SGEN_LOGT(6,"moving (%s) %p to %p",
+            safe_name(src),src,obj);
 
 	HEAVY_STAT (++stat_wbarrier_object_copy);
 

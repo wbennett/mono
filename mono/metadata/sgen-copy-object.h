@@ -57,14 +57,6 @@ set_tenure(MonoObject*src,MonoObject*mo)
         //the absolute value should be used next time it is computed
         mo->tenure_gen = mono_gc_collection_count(1) - age;
 
-        //we were allocated by the managed allocator
-        //our birth didn't get set. Luckily this will only make us off by one
-        if(src->tenure_gen == 0)
-        {
-            //decrement
-            mo->tenure_gen = (mo->tenure_gen-2)*-1;
-            SGEN_LOGT(0,"%s %p it is zero now %d",mo->vtable->klass->name,mo,mo->tenure_gen);
-        }
     }
     //we are moving to a different location in the nursery
     //*during compaction
@@ -82,7 +74,7 @@ set_tenure(MonoObject*src,MonoObject*mo)
         //fast path
         mo->tenure_gen = ((mono_gc_collection_count(1) - age)-2)*-1;
 
-        SGEN_LOGT(0,
+        SGEN_LOGT(6,
 " tlab birth with %s move to nursery at g0=%d g1=%d src(%p) = %d dest(%p) = %d",
                 src->vtable->klass->name,
                 mono_gc_collection_count(0),
@@ -91,13 +83,6 @@ set_tenure(MonoObject*src,MonoObject*mo)
                 src->tenure_gen,
                 mo,
                 mo->tenure_gen
-                );
-    }
-    else{
-        SGEN_LOGT(0,
-                "Null src(%p) or dest(%p) or compacting",
-                src,
-                mo
                 );
     }
 }
@@ -193,14 +178,6 @@ copy_object_no_checks (void *obj, SgenGrayQueue *queue)
 	gboolean has_references = SGEN_VTABLE_HAS_REFERENCES (vt);
 	mword objsize = SGEN_ALIGN_UP (sgen_par_object_get_size (vt, (MonoObject*)obj));
 	char *destination = COLLECTOR_SERIAL_ALLOC_FOR_PROMOTION (vt, obj, objsize, has_references);
-    SGEN_COND_LOGT(0,
-            (objsize >= 1512 && objsize < 2500) ||
-            strcmp("BigObject",vt->klass->name) == 0,
-            "promoting %s %p dest:%p",
-            vt->klass->name,
-            obj,
-            destination
-            );
     //if we are moving from the nursery to the next gen, set the tenure age
     set_tenure(
             (MonoObject*)obj,

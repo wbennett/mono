@@ -93,19 +93,6 @@ PARALLEL_SCAN_VTYPE (char *start, mword desc, SgenGrayQueue *queue BINARY_PROTOC
 /* Global remsets are handled in SERIAL_COPY_OBJECT_FROM_OBJ */
 #define HANDLE_PTR(ptr,obj)	do {	\
 		void *__old = *(ptr);	\
-        MonoObject* mo = (MonoObject*)*ptr;\
-        int cocount = mono_gc_collection_count(0);\
-        /*if this getting invoked we are in minor scan code*/ \
-        if(mo &&    \
-            sgen_ptr_in_nursery(mo) && \
-            mo->tenure_gen == 0 &&  \
-            cocount != 0)   \
-        {   \
-            /*set the nursery tenure if we missed it in alloc*/ \
-            mo->tenure_gen =  (cocount)*-1; \
-            SGEN_LOGT(0,"Setting nursery tenure for %s %p gen %d",\
-                    sgen_safe_name(mo), mo, mo->tenure_gen);\
-        }   \
 		SGEN_OBJECT_LAYOUT_STATISTICS_MARK_BITMAP ((obj), (ptr)); \
 		if (__old) {	\
 			SERIAL_COPY_OBJECT_FROM_OBJ ((ptr), queue);	\

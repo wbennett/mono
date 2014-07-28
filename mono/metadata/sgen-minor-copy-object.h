@@ -223,7 +223,6 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 	char *obj = *obj_slot;
 	mword vtable_word, objsize;
 	MonoVTable *vt;
-    MonoObject *mo;
 	void *destination;
 	gboolean has_references;
 
@@ -238,18 +237,6 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 
 	vtable_word = *(mword*)obj;
 	vt = (MonoVTable*)(vtable_word & ~SGEN_VTABLE_BITS_MASK);
-    /*
-    mo = (MonoObject*)(vtable_word & ~SGEN_VTABLE_BITS_MASK);
-
-    SGEN_LOG(0,"(PARALLEL_COPY_OBJECT) Object %p is marked incrementing age (%d)",mo,mo ? mo->age : -1);
-
-    if(mo)
-    {
-        SGEN_LOG(0,"(PARALLEL_COPY_OBJECT) valid object incrementing age");
-        mo->age++;
-        SGEN_LOG(0,"(PARALLEL_COPY_OBJECT) Object %p after incrementing (age %d)",mo,mo->age);
-    }
-    */
 
 	/*
 	 * Before we can copy the object we must make sure that we are
@@ -278,14 +265,6 @@ PARALLEL_COPY_OBJECT (void **obj_slot, SgenGrayQueue *queue)
 	has_references = SGEN_VTABLE_HAS_REFERENCES (vt);
 
 	destination = COLLECTOR_PARALLEL_ALLOC_FOR_PROMOTION (vt, obj, objsize, has_references);
-    SGEN_COND_LOGT(0,
-            objsize >= 1512 && objsize < 2100 ||
-            strcmp("BigObject",vt->klass->name) == 0,
-            " %s %p dest:%p",
-            vt->klass->name,
-            obj,
-            destination
-            );
 
 	if (G_UNLIKELY (!destination)) {
 		sgen_parallel_pin_or_update (obj_slot, obj, vt, queue);

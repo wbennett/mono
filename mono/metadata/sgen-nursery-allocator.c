@@ -287,7 +287,7 @@ sgen_fragment_get_birth_gen (char *obj)
 {
     SgenFragmentAllocator *allocator = &mutator_allocator;
     SgenFragment *frag = unmask(allocator->region_head);
-    SGEN_LOGT(0,
+    SGEN_LOGT(6,
             "searching fragments for %p ",
             obj
             );
@@ -295,7 +295,7 @@ sgen_fragment_get_birth_gen (char *obj)
     if(!frag)
         return 0;
 
-    SGEN_LOGT(0,"head %p",
+    SGEN_LOGT(6,"head %p",
             frag
             );
 
@@ -303,7 +303,7 @@ sgen_fragment_get_birth_gen (char *obj)
             unmask(frag->next_in_order);
             frag = unmask(frag->next_in_order))
     {
-        SGEN_LOGT(0,"fragment: %p %d fragment_start %p fragment_end: %p next_in_order: %p %d",
+        SGEN_LOGT(6,"fragment: %p %d fragment_start %p fragment_end: %p next_in_order: %p %d",
                 unmask(frag),
                 frag->birth_gen,
                 frag->fragment_start,
@@ -314,14 +314,14 @@ sgen_fragment_get_birth_gen (char *obj)
 
         if(frag->fragment_end > obj)
         {
-            SGEN_LOGT(0,"breaking");
+            SGEN_LOGT(6,"breaking");
             break;
         }
     }
 
     if(frag)
     {
-        SGEN_LOGT(0,"Found fragment: %d",frag->birth_gen);
+        SGEN_LOGT(6,"Found fragment: %d",frag->birth_gen);
         return frag->birth_gen;
     }
 
@@ -423,11 +423,6 @@ claim_remaining_size (SgenFragment *frag, char *alloc_end)
 static void*
 par_alloc_from_fragment (SgenFragmentAllocator *allocator, SgenFragment *frag, size_t size)
 {
-    SGEN_LOGT(0,"size:%d %p %p %p",
-            size,
-            frag->fragment_start,
-            frag->fragment_next,
-            frag->fragment_end);
 	char *p = frag->fragment_next;
 	char *end = p + size;
 
@@ -494,7 +489,6 @@ par_alloc_from_fragment (SgenFragmentAllocator *allocator, SgenFragment *frag, s
 static void*
 serial_alloc_from_fragment (SgenFragment **previous, SgenFragment *frag, size_t size)
 {
-    SGEN_LOGT(0,"size:%d",size);
 	char *p = frag->fragment_next;
 	char *end = p + size;
 
@@ -537,7 +531,6 @@ restart:
 #ifdef NALLOC_DEBUG
 			add_alloc_record (p, size, FIXED_ALLOC);
 #endif
-            SGEN_LOGT(0,"size:%d %p",size,p);
 			return p;
 		}
 	}
@@ -625,7 +618,6 @@ sgen_fragment_allocator_serial_range_alloc (SgenFragmentAllocator *allocator, si
 void*
 sgen_fragment_allocator_par_range_alloc (SgenFragmentAllocator *allocator, size_t desired_size, size_t minimum_size, size_t *out_alloc_size)
 {
-    SGEN_LOGT(0,"size:%d",desired_size);
 	SgenFragment *frag, *min_frag;
 	size_t current_minimum;
 
