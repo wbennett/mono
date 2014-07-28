@@ -283,7 +283,7 @@ sgen_fragment_allocator_alloc (void)
 }
 
 int
-sgen_fragment_get_birth_gen (char *obj)
+sgen_fragment_get_birth_age (char *obj)
 {
     SgenFragmentAllocator *allocator = &mutator_allocator;
     SgenFragment *frag = unmask(allocator->region_head);
@@ -305,24 +305,23 @@ sgen_fragment_get_birth_gen (char *obj)
     {
         SGEN_LOGT(6,"fragment: %p %d fragment_start %p fragment_end: %p next_in_order: %p %d",
                 unmask(frag),
-                frag->birth_gen,
+                frag->birth_age,
                 frag->fragment_start,
                 frag->fragment_end,
                 unmask(frag->next_in_order),
-                frag->next_in_order->birth_gen
+                frag->next_in_order->birth_age
                 );
 
         if(frag->fragment_end > obj)
         {
-            SGEN_LOGT(6,"breaking");
             break;
         }
     }
 
     if(frag)
     {
-        SGEN_LOGT(6,"Found fragment: %d",frag->birth_gen);
-        return frag->birth_gen;
+        SGEN_LOGT(6,"Found fragment: %d",frag->birth_age);
+        return frag->birth_age;
     }
 
     return 0;
@@ -648,7 +647,7 @@ restart:
 			add_alloc_record (p, desired_size, RANGE_ALLOC);
 #endif
             if(frag)
-                frag->birth_gen = SGEN_FRAGMENT_BIRTH_GEN();
+                frag->birth_age = SGEN_FRAGMENT_BIRTH_GEN();
 			return p;
 		}
 		if (current_minimum <= frag_size) {
@@ -682,7 +681,7 @@ restart:
 		add_alloc_record (p, frag_size, RANGE_ALLOC);
 #endif
         if(frag)
-            frag->birth_gen = SGEN_FRAGMENT_BIRTH_GEN();
+            frag->birth_age = SGEN_FRAGMENT_BIRTH_GEN();
 
 		return p;
 	}

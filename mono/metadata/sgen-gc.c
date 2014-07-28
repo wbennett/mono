@@ -4719,7 +4719,7 @@ mono_gc_get_object_age  (MonoObject *object)
             if(object->tenure_gen == 0)
             {
                 object->tenure_gen =
-                        sgen_fragment_get_birth_gen((char*)object);
+                        sgen_fragment_get_birth_age((char*)object);
             }
             //the tenure was picked up by the sweep
             age = (mono_gc_collection_count(0) + (object->tenure_gen+1));
